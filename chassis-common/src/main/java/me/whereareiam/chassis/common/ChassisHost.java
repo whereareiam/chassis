@@ -46,6 +46,10 @@ import java.util.function.Consumer;
  * <p>Every change is made under one lock, on the caller's thread; a host calls it from the thread it starts and stops
  * extensions on.</p>
  *
+ * <p>It logs what a host's administrator needs to act on: an extension that waits, with what for, one that cannot or
+ * did not start, with why, and one that did not stop cleanly. Each start and stop of an extension is a debug line; a
+ * host says in its own words what it started and stopped, from {@link #list()}.</p>
+ *
  * @param <C> the context the host gives its kind of extension
  */
 public final class ChassisHost<C extends ExtensionContext> implements Extensions {
@@ -63,6 +67,8 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 	// Every installed extension by id, in the order its jar was found; started ones also in start order.
 	private final Map<String, Entry> entries = new LinkedHashMap<>();
 	private final List<String> started = new ArrayList<>();
+	// While the host stops, every extension waits for it to start again; that is no news worth a line each.
+	private boolean stopping;
 
 	/**
 	 * Makes the host's extensions; nothing is read until {@link #start()}.
@@ -114,8 +120,13 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 	 * Stops every running extension, dependents first. They wait for the host to start again.
 	 */
 	public synchronized void stop() {
-		for (String id : List.copyOf(started).reversed())
-			stopOne(entries.get(id), ExtensionState.WAITING, List.of("the " + options.getKind() + "s' host to start"));
+		stopping = true;
+		try {
+			for (String id : List.copyOf(started).reversed())
+				stopOne(entries.get(id), ExtensionState.WAITING, List.of("the " + options.getKind() + "s' host to start"));
+		} finally {
+			stopping = false;
+		}
 	}
 
 	/**
@@ -347,7 +358,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 			entry.loaded = new Loaded(loader, instance, base);
 			started.add(entry.id());
 			change(entry, ExtensionState.ENABLED, List.of(), null);
-			logger.log(System.Logger.Level.INFO, "Enabled the " + options.getKind() + " " + descriptor.getId() + " " + descriptor.getVersion());
+			logger.log(System.Logger.Level.DEBUG, "Enabled the " + options.getKind() + " " + descriptor.getId() + " " + descriptor.getVersion());
 
 			return true;
 		} catch (Throwable failure) {
@@ -436,7 +447,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		entry.loaded = null;
 		started.remove(entry.id());
 		change(entry, next, waitingFor, null);
-		logger.log(System.Logger.Level.INFO, "Stopped the " + options.getKind() + " " + entry.id());
+		logger.log(System.Logger.Level.DEBUG, "Stopped the " + options.getKind() + " " + entry.id());
 	}
 
 	private void closeLoader(@Nullable ExtensionClassLoader loader, @Nullable Throwable failure) {
@@ -467,7 +478,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		entry.failure = failure;
 		if (same) return;
 
-		if (next == ExtensionState.WAITING && !waitingFor.isEmpty())
+		if (next == ExtensionState.WAITING && !waitingFor.isEmpty() && !stopping)
 			logger.log(System.Logger.Level.INFO, "The " + options.getKind() + " " + entry.id() + " waits for " + String.join(", ", waitingFor));
 		else if (next == ExtensionState.FAILED && failure != null && previous != ExtensionState.ENABLED && loadedFailure(failure))
 			logger.log(System.Logger.Level.WARNING, "The " + options.getKind() + " " + entry.id() + " cannot start: " + failure.getMessage());
