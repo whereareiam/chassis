@@ -3,23 +3,23 @@
 # plugins
 shadow = "9.3.0"
 toolkit = "0.3.0"
-freefair = "9.5.0"
+freefair = "9.8.3"
 moddev = "2.0.148"
 
 # compile time processing
-lombok = "1.18.42"
+lombok = "1.18.48"
 
 # general
 configura = "2.1.0"
 guice = "7.0.0"
-annotations = "26.0.1"
+annotations = "26.1.0"
 
 # platform api
 neoforge = "21.1.252"
 fancymodloader = "4.0.44"
 
 # testing
-junit = "6.0.1"
+junit = "6.1.3"
 
 [libraries]
 
