@@ -22,6 +22,8 @@ When changing behavior:
   The standard host. `ChassisHost` owns every installed extension and implements `Extensions`; `HostOptions` is what a host tells it; `SelectionFile` keeps turned-off ids. Packages: `discovery` (`ExtensionDiscovery`, `DescriptorReader`), `resolution` (`DependencyResolver`), `loading` (`ExportLayer`, `ExtensionClassLoader`), `lifecycle` (`LoadedContext`), `service` (`ServiceRegistry`).
 - `chassis-adapter-guice`
   `GuiceExtensionFactory`: an injector of its own per extension, never a child injector, because Guice puts a child's just-in-time bindings into the parent and the host would keep the extension's class loader. `GuiceExtensionFactoryTest` proves it. Guice is `compileOnly`.
+- `chassis-adapter-commandant`
+  `ExtensionCommands`: `/<root> <kind> list|info|enable|disable|reload|rescan` on Cloud, each with the permission `<root>.command.<kind>.<name>` the host checks and Commandant's definition id `<kind>-<name>`; `ExtensionMessages`, the answers in MiniMessage. Cloud, Commandant's API and Adventure are `compileOnly`.
 - `chassis-platform/type/platform-neoforge` (project `:platform-neoforge`)
   `NeoForgePlatform`: the name `neoforge` and loaded mods for descriptors' `plugins`. NeoForge's loader is `compileOnly`.
 - `chassis-testing`
@@ -37,7 +39,7 @@ Not in the repository yet: `chassis-adapter-attache` (shared libraries), `chassi
 
 - For contracts and public models, start in `chassis-api`.
 - For discovery, resolution, loading, lifecycle, selection or services, start in the matching package of `chassis-common`; for the order of operations, start in `ChassisHost`.
-- For Guice, start in `chassis-adapter-guice`; for NeoForge, in `chassis-platform/type/platform-neoforge`.
+- For the commands of a host's extensions, start in `chassis-adapter-commandant`. For Guice, start in `chassis-adapter-guice`; for NeoForge, in `chassis-platform/type/platform-neoforge`.
 - For test helpers, start in `chassis-testing`.
 - For build behavior or publication, check `build-logic/` and `gradle/libs.versions.toml`.
 - For changes hosts or extensions notice, check the matching pages under `docs/content/developers/`.
@@ -55,7 +57,7 @@ Not in the repository yet: `chassis-adapter-attache` (shared libraries), `chassi
 
 ### API Surfaces
 
-- `chassis-api` is the public API surface, together with the public types of `chassis-common`, `chassis-adapter-guice`, `platform-neoforge` and `chassis-testing` that hosts use (`ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile`, `GuiceExtensionFactory`, `NeoForgePlatform`, `ExtensionJar`, `LeakCheck`).
+- `chassis-api` is the public API surface, together with the public types of `chassis-common`, `chassis-adapter-guice`, `chassis-adapter-commandant`, `platform-neoforge` and `chassis-testing` that hosts use (`ExtensionCommands`, `ExtensionMessages`, `ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile`, `GuiceExtensionFactory`, `NeoForgePlatform`, `ExtensionJar`, `LeakCheck`).
 - Public API changes are compatibility-sensitive.
 - Public API code must have complete Javadocs for public classes, interfaces, enums, and public methods.
 
