@@ -1,0 +1,22 @@
+{
+  "title": "Hosting extensions",
+  "description": "Load your own kind of extension into a plugin or mod",
+  "icon": "Code",
+  "root": true,
+  "pages": [
+    "---Getting Started---",
+    "index",
+    "descriptor",
+    "---Running Extensions---",
+    "class-loading",
+    "lifecycle",
+    "selection",
+    "services",
+    "control",
+    "---Adapters and Platforms---",
+    "guice",
+    "neoforge",
+    "---Testing---",
+    "testing"
+  ]
+}

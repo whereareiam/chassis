@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Help with using Chassis
+    url: https://discord.arcadeya.com
+    about: Ask on Discord about setting up a host or writing an extension.
+  - name: Security vulnerability
+    url: https://github.com/whereareiam/chassis/security/policy
+    about: Report vulnerabilities privately, never in a public issue.

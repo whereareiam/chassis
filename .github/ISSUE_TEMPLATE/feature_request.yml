@@ -1,0 +1,43 @@
+name: Suggestion
+description: Suggest a new feature or a change to existing behavior.
+labels:
+  - suggestion
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What your host or extension is trying to do and what stops you today.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How Chassis could solve it, for hosts and for extensions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Workarounds or other solutions you considered.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Discovery
+        - Resolution
+        - Loading
+        - Lifecycle
+        - Selection
+        - Services
+        - Guice
+        - NeoForge
+        - Testing
+        - API
+        - Other

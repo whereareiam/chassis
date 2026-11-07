@@ -1,0 +1,59 @@
+{
+  "name": "Chassis",
+  "description": "Extension loading for JVM hosts such as Minecraft plugins and mods.",
+  "state": {
+    "bundling": {
+      "captions": [
+        "Reading every descriptor twice, just in case.",
+        "Sorting dependencies before they sort us.",
+        "Asking the export layer what it is allowed to say.",
+        "Waiting for a plugin that promised to come.",
+        "Collecting class loaders nobody misses."
+      ]
+    }
+  },
+  "urls": {
+    "github": "https://github.com/whereareiam/chassis"
+  },
+  "links": [
+    {
+      "type": "icon",
+      "label": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/whereareiam/chassis",
+      "external": true
+    },
+    {
+      "type": "icon",
+      "label": "Discord",
+      "icon": "discord",
+      "url": "https://discord.arcadeya.com",
+      "external": true
+    }
+  ],
+  "i18n": {
+    "default": "en",
+    "languages": {
+      "en": { "label": "English" }
+    }
+  },
+  "versions": {
+    "home": "dev",
+    "include": [
+      { "type": "branch", "pattern": "release/*" },
+      { "type": "tag", "pattern": "*" }
+    ],
+    "meta": {
+      "dev": {
+        "label": "Development",
+        "theme": {
+          "primary": "hsl(28 100% 56%)",
+          "primaryForeground": "hsl(0 0% 7%)",
+          "ring": "hsl(28 100% 56%)",
+          "accent": "hsla(28 100% 56% / 0.14)",
+          "accentForeground": "hsl(28 100% 86%)"
+        }
+      }
+    }
+  }
+}

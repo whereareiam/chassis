@@ -1,0 +1,75 @@
+name: Bug report
+description: Something in Chassis does not work as documented.
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask on [Discord](https://discord.arcadeya.com) for help with using Chassis in a host. Report vulnerabilities privately through the [security policy](https://github.com/whereareiam/chassis/security/policy).
+
+  - type: input
+    id: version
+    attributes:
+      label: Chassis version
+      description: The version of the `me.whereareiam.chassis` artifacts, for example `0.1.0` or `dev-1a2b3c4`.
+    validations:
+      required: true
+
+  - type: input
+    id: host
+    attributes:
+      label: Host and version
+      description: The plugin, mod or application that loads extensions through Chassis.
+      placeholder: Arbor 1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - NeoForge
+        - Other platform
+        - No platform (tests or a plain JVM application)
+    validations:
+      required: true
+
+  - type: input
+    id: platform-version
+    attributes:
+      label: Platform version
+      placeholder: NeoForge 21.1.252
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Put two extension jars into the host's folder, where `b` depends on `a`
+        2. Start the host
+        3. Disable `a` ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The host's log of the problem, including the stack traces Chassis logged.
+      render: text
+
+  - type: textarea
+    id: descriptor
+    attributes:
+      label: Descriptors
+      description: The descriptor files of the extensions involved.
+      render: yaml

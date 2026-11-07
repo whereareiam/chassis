@@ -1,0 +1,22 @@
+# IDE files
+.vscode/
+.idea/
+
+# gradle
+.gradle/
+build/
+bin/
+
+# node/docusaurus
+node_modules/
+.docusaurus/
+docs/build/
+docs/node_modules/
+docs/.docusaurus/
+docs/versioned_docs/
+docs/versioned_sidebars/
+docs/versions.json
+.scriptorium/
+
+# local runtime data of the removed dev scenarios
+/dev/server/

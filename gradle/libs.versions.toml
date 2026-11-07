@@ -1,0 +1,45 @@
+[versions]
+
+# plugins
+shadow = "9.3.0"
+toolkit = "0.3.0"
+freefair = "9.5.0"
+moddev = "2.0.148"
+
+# compile time processing
+lombok = "1.18.42"
+
+# general
+configura = "2.1.0"
+guice = "7.0.0"
+annotations = "26.0.1"
+
+# platform api
+neoforge = "21.1.252"
+fancymodloader = "4.0.44"
+
+# testing
+junit = "6.0.1"
+
+[libraries]
+
+# compile time processing
+lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" }
+lombok-plugin = { group = "io.freefair.gradle", name = "lombok-plugin", version.ref = "freefair" }
+toolkit-publish-maven = { group = "me.whereareiam.toolkit", name = "publish-maven", version.ref = "toolkit" }
+
+# general
+configura = { group = "me.whereareiam", name = "configura", version.ref = "configura" }
+guice = { group = "com.google.inject", name = "guice", version.ref = "guice" }
+annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
+
+# platform api
+fancymodloader = { group = "net.neoforged.fancymodloader", name = "loader", version.ref = "fancymodloader" }
+
+# testing
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-platform = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit" }
+
+[plugins]
+moddev = { id = "net.neoforged.moddev", version.ref = "moddev" }
+toolkit-versioning = { id = "me.whereareiam.toolkit.versioning", version.ref = "toolkit" }
