@@ -12,6 +12,9 @@ lombok = "1.18.42"
 # general
 configura = "2.1.0"
 guice = "7.0.0"
+commandant = "1.0.0"
+cloud = "2.0.0"
+adventure = "4.25.0"
 annotations = "26.0.1"
 
 # platform api
@@ -31,6 +34,11 @@ toolkit-publish-maven = { group = "me.whereareiam.toolkit", name = "publish-mave
 # general
 configura = { group = "me.whereareiam", name = "configura", version.ref = "configura" }
 guice = { group = "com.google.inject", name = "guice", version.ref = "guice" }
+commandant-api = { group = "me.whereareiam", name = "commandant-api", version.ref = "commandant" }
+cloud-core = { group = "org.incendo", name = "cloud-core", version.ref = "cloud" }
+adventure-api = { group = "net.kyori", name = "adventure-api", version.ref = "adventure" }
+adventure-minimessage = { group = "net.kyori", name = "adventure-text-minimessage", version.ref = "adventure" }
+adventure-plain = { group = "net.kyori", name = "adventure-text-serializer-plain", version.ref = "adventure" }
 annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
 
 # platform api

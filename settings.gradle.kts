@@ -37,6 +37,9 @@ project(":chassis-common").projectDir = file("chassis-common")
 include(":chassis-adapter-guice")
 project(":chassis-adapter-guice").projectDir = file("chassis-adapter-guice")
 
+include(":chassis-adapter-commandant")
+project(":chassis-adapter-commandant").projectDir = file("chassis-adapter-commandant")
+
 include(":platform-neoforge")
 project(":platform-neoforge").projectDir = file("chassis-platform/type/platform-neoforge")
 
