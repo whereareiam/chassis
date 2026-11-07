@@ -144,7 +144,7 @@ A merged pull request lands in the release draft as `* <title> ([#<number>](<url
 
 Areas for behavior hosts and extensions notice:
 
-`Discovery`, `Resolution`, `Loading`, `Lifecycle`, `Selection`, `Services`, `Guice`, `NeoForge`, `Testing`
+`Discovery`, `Resolution`, `Loading`, `Lifecycle`, `Selection`, `Services`, `Guice`, `Commands`, `NeoForge`, `Testing`
 
 - reuse an existing area whenever one fits
 - add a new area only for something readers recognise by that name, such as a new adapter or platform, and add it to this list, to the issue template's areas and to the pull request template in the same pull request
