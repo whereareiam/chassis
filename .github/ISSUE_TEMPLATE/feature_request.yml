@@ -37,6 +37,7 @@ body:
         - Selection
         - Services
         - Guice
+        - Commands
         - NeoForge
         - Testing
         - API
