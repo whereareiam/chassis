@@ -16,6 +16,7 @@ Chassis is published to the [public Maven registry](https://registry.whereareiam
 | `chassis-api` | extensions, through the host's API | `Extension`, `ExtensionContext`, `Services`, `Extensions`, descriptors and states |
 | `chassis-common` | the host, shipped inside it | `ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile` |
 | `chassis-adapter-guice` | a host that makes extensions through Guice | `GuiceExtensionFactory`; see [Guice](./guice/index.md) |
+| `chassis-adapter-attache` | a host whose extensions declare libraries through Attache | `AttacheLibraries`; see [Attache](./attache/index.md) |
 | `platform-neoforge` | a host on NeoForge | `NeoForgePlatform`; see [NeoForge](./neoforge/index.md) |
 | `chassis-testing` | the host's tests | `ExtensionJar`, `LeakCheck`; see [Testing a host](./testing/index.md) |
 

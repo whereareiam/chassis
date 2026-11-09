@@ -10,12 +10,13 @@ description: How the repository is laid out, which module owns what, and how a h
 | `chassis-api` | `chassis-api/` | The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `ExtensionPreparation`, `Extensions`, `Services`, `Platform`, descriptors, versions, states, events and exceptions. No behavior beyond parsing versions and ranges. |
 | `chassis-common` | `chassis-common/` | The standard host, `ChassisHost`, and everything it runs: discovery, resolution, loading, lifecycle, services and the selection file. |
 | `chassis-adapter-guice` | `chassis-adapter-guice/` | `GuiceExtensionFactory`. Guice is `compileOnly`; the host ships it. |
+| `chassis-adapter-attache` | `chassis-adapter-attache/` | `AttacheLibraries`, the preparation that loads an extension's declared libraries into its loader. Attache is `compileOnly`; the host ships it. |
 | `platform-neoforge` | `chassis-platform/type/platform-neoforge/` | `NeoForgePlatform`. NeoForge's loader is `compileOnly`. |
 | `chassis-testing` | `chassis-testing/` | `ExtensionJar` and `LeakCheck` for hosts' tests. |
 
 Outside their tests, the other modules depend on `chassis-api` and on no other module of Chassis; `chassis-common` reads YAML through Configura. Every module is published under `me.whereareiam.chassis`.
 
-Not in the repository yet: adapters for shared libraries (`chassis-adapter-attache`) and commands (`chassis-adapter-commandant`), and platforms for Bukkit, Velocity and BungeeCord.
+Not in the repository yet: platforms for Bukkit, Velocity and BungeeCord.
 
 `build-logic/` holds the Gradle conventions. `module-java` sets the group, the Java 21 toolchain, Lombok, JetBrains annotations, JUnit, and sources and Javadoc jars; `module-api` is `module-java` with publication, for `chassis-api`; `packaging-publication` publishes a module to Maven. A published module that is not the API applies `module-java` and `packaging-publication`.
 

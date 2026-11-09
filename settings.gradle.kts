@@ -37,6 +37,9 @@ project(":chassis-common").projectDir = file("chassis-common")
 include(":chassis-adapter-guice")
 project(":chassis-adapter-guice").projectDir = file("chassis-adapter-guice")
 
+include(":chassis-adapter-attache")
+project(":chassis-adapter-attache").projectDir = file("chassis-adapter-attache")
+
 include(":chassis-adapter-commandant")
 project(":chassis-adapter-commandant").projectDir = file("chassis-adapter-commandant")
 
