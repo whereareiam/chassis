@@ -23,7 +23,7 @@ When changing behavior:
 - `chassis-adapter-guice`
   `GuiceExtensionFactory`: an injector of its own per extension, never a child injector, because Guice puts a child's just-in-time bindings into the parent and the host would keep the extension's class loader. `GuiceExtensionFactoryTest` proves it. Guice is `compileOnly`.
 - `chassis-adapter-commandant`
-  `ExtensionCommands`: `/<root> <kind> list|info|enable|disable|reload|rescan` on Cloud, each with the permission `<root>.command.<kind>.<name>` the host checks and Commandant's definition id `<kind>-<name>`; `ExtensionMessages`, the answers in MiniMessage. Cloud, Commandant's API and Adventure are `compileOnly`.
+  `ExtensionCommands`: `/<root> <kind> list|info|enable|disable|reload|rescan` on Cloud, each with the permission `<root>.command.<kind>.<name>` the host checks and Commandant's definition id `<kind>-<name>`; each answer a translatable component under the host's key prefix with named arguments, worded by the host's translations. Cloud, Commandant's API and Adventure are `compileOnly`.
 - `chassis-platform/type/platform-neoforge` (project `:platform-neoforge`)
   `NeoForgePlatform`: the name `neoforge` and loaded mods for descriptors' `plugins`. NeoForge's loader is `compileOnly`.
 - `chassis-testing`
@@ -57,7 +57,7 @@ Not in the repository yet: `chassis-adapter-attache` (shared libraries), `chassi
 
 ### API Surfaces
 
-- `chassis-api` is the public API surface, together with the public types of `chassis-common`, `chassis-adapter-guice`, `chassis-adapter-commandant`, `platform-neoforge` and `chassis-testing` that hosts use (`ExtensionCommands`, `ExtensionMessages`, `ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile`, `GuiceExtensionFactory`, `NeoForgePlatform`, `ExtensionJar`, `LeakCheck`).
+- `chassis-api` is the public API surface, together with the public types of `chassis-common`, `chassis-adapter-guice`, `chassis-adapter-commandant`, `platform-neoforge` and `chassis-testing` that hosts use (`ExtensionCommands`, `ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile`, `GuiceExtensionFactory`, `NeoForgePlatform`, `ExtensionJar`, `LeakCheck`).
 - Public API changes are compatibility-sensitive.
 - Public API code must have complete Javadocs for public classes, interfaces, enums, and public methods.
 

@@ -11,11 +11,8 @@ dependencies {
     compileOnly(libs.cloud.core)
     compileOnly(libs.commandant.api) { isTransitive = false }
     compileOnly(libs.adventure.api)
-    compileOnly(libs.adventure.minimessage)
 
     testImplementation(libs.cloud.core)
     testImplementation(libs.commandant.api) { isTransitive = false }
-    testImplementation(libs.adventure.api)
-    testImplementation(libs.adventure.minimessage)
-    testImplementation(libs.adventure.plain)
+    testImplementation(libs.adventure.api.v5)
 }
