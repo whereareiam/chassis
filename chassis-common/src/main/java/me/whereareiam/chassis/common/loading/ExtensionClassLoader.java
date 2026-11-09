@@ -2,8 +2,10 @@ package me.whereareiam.chassis.common.loading;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -34,6 +36,19 @@ public final class ExtensionClassLoader extends URLClassLoader {
 	) {
 		super("chassis-extension:" + id, new URL[]{jar}, layer);
 		this.dependencies = List.copyOf(dependencies);
+	}
+
+	/**
+	 * Adds a jar after the extension's own, such as a library a preparation loads for it.
+	 *
+	 * @param jar the jar to add
+	 */
+	public void addJar(@NotNull Path jar) {
+		try {
+			addURL(jar.toUri().toURL());
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(jar + " cannot be read as a class path entry", e);
+		}
 	}
 
 	@Override

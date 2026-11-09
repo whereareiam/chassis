@@ -3,6 +3,7 @@ package me.whereareiam.chassis.common;
 import me.whereareiam.chassis.Extension;
 import me.whereareiam.chassis.ExtensionContext;
 import me.whereareiam.chassis.ExtensionFactory;
+import me.whereareiam.chassis.ExtensionPreparation;
 import me.whereareiam.chassis.Extensions;
 import me.whereareiam.chassis.common.discovery.ExtensionDiscovery;
 import me.whereareiam.chassis.common.lifecycle.LoadedContext;
@@ -342,9 +343,11 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		}
 
 		ExtensionClassLoader loader = null;
+		AutoCloseable prepared = null;
 		LoadedContext base = null;
 		try {
 			loader = new ExtensionClassLoader(entry.id(), entry.found.jar().toUri().toURL(), options.getExportLayer(), dependencies);
+			prepared = options.getPreparation().prepare(new PreparedLoader(descriptor, entry.found.jar(), loader));
 			Class<?> main = Class.forName(descriptor.getMain(), true, loader);
 			if (!kind.isAssignableFrom(main))
 				throw new ExtensionException(entry.id(), descriptor.getMain() + " is no " + kind.getName());
@@ -355,7 +358,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 			Extension<C> instance = (Extension<C>) factory.create(main, context);
 			instance.enable(context);
 
-			entry.loaded = new Loaded(loader, instance, base);
+			entry.loaded = new Loaded(loader, prepared, instance, base);
 			started.add(entry.id());
 			change(entry, ExtensionState.ENABLED, List.of(), null);
 			logger.log(System.Logger.Level.DEBUG, "Enabled the " + options.getKind() + " " + descriptor.getId() + " " + descriptor.getVersion());
@@ -368,6 +371,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 				Exception cleanup = base.close();
 				if (cleanup != null) failure.addSuppressed(cleanup);
 			}
+			closePrepared(prepared, failure);
 			closeLoader(loader, failure);
 			ExtensionException reported = failure instanceof ExtensionException known ? known
 					: new ExtensionException(entry.id(), "'" + entry.id() + "' failed to start: " + failure, detached(failure));
@@ -441,6 +445,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		Exception cleanup = loaded.context.close();
 		if (failure == null) failure = cleanup;
 		else if (cleanup != null) failure.addSuppressed(cleanup);
+		failure = closePrepared(loaded.prepared, failure);
 		if (failure != null) logger.log(System.Logger.Level.WARNING, "The " + options.getKind() + " " + entry.id() + " did not stop cleanly", failure);
 		closeLoader(loaded.loader, null);
 
@@ -448,6 +453,19 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		started.remove(entry.id());
 		change(entry, next, waitingFor, null);
 		logger.log(System.Logger.Level.DEBUG, "Stopped the " + options.getKind() + " " + entry.id());
+	}
+
+	// Closes what the preparation of a load returned; a failure is added to the given one, or becomes it.
+	private static @Nullable Throwable closePrepared(@Nullable AutoCloseable prepared, @Nullable Throwable failure) {
+		if (prepared == null) return failure;
+		try {
+			prepared.close();
+		} catch (Exception e) {
+			if (failure == null) return e;
+			failure.addSuppressed(e);
+		}
+
+		return failure;
 	}
 
 	private void closeLoader(@Nullable ExtensionClassLoader loader, @Nullable Throwable failure) {
@@ -552,13 +570,31 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 
 	private final class Loaded {
 		private final ExtensionClassLoader loader;
+		private final AutoCloseable prepared;
 		private final Extension<C> instance;
 		private final LoadedContext context;
 
-		private Loaded(ExtensionClassLoader loader, Extension<C> instance, LoadedContext context) {
+		private Loaded(ExtensionClassLoader loader, AutoCloseable prepared, Extension<C> instance, LoadedContext context) {
 			this.loader = loader;
+			this.prepared = prepared;
 			this.instance = instance;
 			this.context = context;
+		}
+	}
+
+	private record PreparedLoader(
+			@NotNull ExtensionDescriptor descriptor,
+			@NotNull Path jar,
+			@NotNull ExtensionClassLoader loader
+	) implements ExtensionPreparation.Loader {
+		@Override
+		public @NotNull ClassLoader classLoader() {
+			return loader;
+		}
+
+		@Override
+		public void addJar(@NotNull Path jar) {
+			loader.addJar(jar);
 		}
 	}
 }

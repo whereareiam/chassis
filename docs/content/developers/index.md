@@ -117,6 +117,7 @@ public final class ExampleHost {
 | `offer(name, version)` | Something the host offers for descriptors' `requires`; call it once per offer. |
 | `platform` | The platform the host runs on. See [NeoForge](./neoforge/index.md) and [Other platforms](./neoforge/index.md#other-platforms). |
 | `exportLayer` | The packages extensions see of the host. See [What extensions see](./class-loading/index.md). |
+| `preparation` | Prepares each extension's class loader before its main class is loaded, such as adding the libraries it declares. Defaults to `ExtensionPreparation.NONE`. See [What extensions see](./class-loading/index.md#preparing-a-loader). |
 | `loggers` | Gives the `System.Logger` of a name: the host's kind word or an extension's id. Defaults to `System::getLogger`. |
 
 The last two constructor arguments make each load: `base -> base` hands every extension the context Chassis keeps, and `ExtensionFactory.CONSTRUCTOR` makes the main class through its public constructor without parameters. [Guice](./guice/index.md) replaces the factory.

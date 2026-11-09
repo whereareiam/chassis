@@ -2,6 +2,7 @@ package me.whereareiam.chassis.common;
 
 import me.whereareiam.chassis.ExtensionContext;
 import me.whereareiam.chassis.ExtensionFactory;
+import me.whereareiam.chassis.ExtensionPreparation;
 import me.whereareiam.chassis.common.loading.ExportLayer;
 import me.whereareiam.chassis.model.InstalledExtension;
 import me.whereareiam.chassis.model.Version;
@@ -14,6 +15,8 @@ import org.example.dependent.DependentModule;
 import org.example.failing.FailingModule;
 import org.example.greeting.GreetingModule;
 import org.example.greeting.Shared;
+import org.example.library.LibraryModule;
+import org.example.library.LibraryText;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChassisHostTest {
@@ -49,6 +53,7 @@ class ChassisHostTest {
 		System.clearProperty("chassis.test.failing.closed");
 		System.clearProperty("chassis.test.dependent.saw");
 		System.clearProperty("chassis.test.dependent.junit");
+		System.clearProperty("chassis.test.library.saw");
 	}
 
 	@AfterEach
@@ -160,6 +165,52 @@ class ChassisHostTest {
 		assertTrue(host.find("failing").orElseThrow().getFailure().getCause().getMessage()
 				.equals(IllegalStateException.class.getName() + ": The failing module does not start"));
 		assertTrue(LeakCheck.collected(Witness.failingLoader, Duration.ofSeconds(10)), "the kept failure holds the failed extension's loader");
+	}
+
+	@Test
+	void anExtensionUsesTheJarsItsPreparationAddedWhichCloseWhenItStops() throws Exception {
+		Path library = ExtensionJar.of("library.txt", "").with(LibraryText.class).write(folder.resolve("libraries/library.jar"));
+		library();
+		List<String> prepared = new ArrayList<>();
+		start(loader -> {
+			prepared.add(loader.descriptor().getId() + " " + loader.jar().getFileName());
+			loader.addJar(library);
+			return () -> prepared.add("closed");
+		});
+
+		assertEquals(ExtensionState.ENABLED, state("library"));
+		assertEquals(LibraryText.TEXT, System.getProperty("chassis.test.library.saw"));
+
+		host.stop();
+
+		assertEquals(List.of("library library.jar", "closed"), prepared);
+	}
+
+	@Test
+	void anExtensionWhosePreparationFailsDoesNotStart() throws Exception {
+		library();
+		start(loader -> {
+			throw new IllegalStateException("No libraries today");
+		});
+
+		InstalledExtension library = host.find("library").orElseThrow();
+		assertEquals(ExtensionState.FAILED, library.getState());
+		assertTrue(library.getFailure().getMessage().contains("No libraries today"));
+		assertNull(System.getProperty("chassis.test.library.saw"));
+	}
+
+	@Test
+	void anExtensionThatFailsToStartClosesWhatItsPreparationReturned() throws Exception {
+		ExtensionJar.of(DESCRIPTOR, """
+				id: failing
+				version: 1.0.0
+				main: org.example.failing.FailingModule
+				""").with(FailingModule.class).write(folder.resolve("modules/failing.jar"));
+		List<String> closed = new ArrayList<>();
+		start(loader -> () -> closed.add(loader.descriptor().getId()));
+
+		assertEquals(ExtensionState.FAILED, state("failing"));
+		assertEquals(List.of("failing"), closed);
 	}
 
 	@Test
@@ -278,6 +329,10 @@ class ChassisHostTest {
 	}
 
 	private void start() throws Exception {
+		start(ExtensionPreparation.NONE);
+	}
+
+	private void start(ExtensionPreparation preparation) throws Exception {
 		HostOptions options = HostOptions.builder()
 				.kind("module")
 				.folder(folder.resolve("modules"))
@@ -298,6 +353,7 @@ class ChassisHostTest {
 					}
 				})
 				.exportLayer(new ExportLayer(getClass().getClassLoader(), List.of("me.whereareiam.chassis")))
+				.preparation(preparation)
 				.build();
 		host = new ChassisHost<>(options, TestModule.class, base -> base, ExtensionFactory.CONSTRUCTOR);
 		host.start();
@@ -314,6 +370,14 @@ class ChassisHostTest {
 				version: 1.4.0
 				main: org.example.greeting.GreetingModule
 				""").with(GreetingModule.class, Shared.class).write(folder.resolve("modules/greeting.jar"));
+	}
+
+	private void library() throws Exception {
+		ExtensionJar.of(DESCRIPTOR, """
+				id: library
+				version: 1.0.0
+				main: org.example.library.LibraryModule
+				""").with(LibraryModule.class).write(folder.resolve("modules/library.jar"));
 	}
 
 	private void dependent(String range) throws Exception {

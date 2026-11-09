@@ -29,15 +29,16 @@ If an extension fails to start, the extensions that need it wait, and Chassis de
 For each extension it starts, Chassis:
 
 1. makes its class loader over the export layer and the loaders of its enabled dependencies;
-2. loads the main class and checks that it implements the host's kind;
-3. creates the data folder `<dataFolder>/<id>`, which is kept across loads;
-4. makes the context of this load: the base context, through the host's `ContextFactory`;
-5. makes the instance through the host's `ExtensionFactory`;
-6. calls `enable(context)`.
+2. runs the host's [preparation](../class-loading/index.md#preparing-a-loader) on that loader;
+3. loads the main class and checks that it implements the host's kind;
+4. creates the data folder `<dataFolder>/<id>`, which is kept across loads;
+5. makes the context of this load: the base context, through the host's `ContextFactory`;
+6. makes the instance through the host's `ExtensionFactory`;
+7. calls `enable(context)`.
 
 The extension is then `ENABLED`, and the host's log shows `Enabled the module <id> <version>`.
 
-If any step throws, Chassis closes what the extension handed to `onClose` so far, removes the services and watches it registered, closes its class loader, and marks it `FAILED` with the exception as its failure. The log shows `The module <id> failed to start` with the stack trace. Extensions that depend on it wait with a reason such as `'failing' * (failed)`.
+If any step throws, Chassis closes what the extension handed to `onClose` so far, removes the services and watches it registered, closes what the preparation returned and then its class loader, and marks it `FAILED` with the exception as its failure. The log shows `The module <id> failed to start` with the stack trace. Extensions that depend on it wait with a reason such as `'failing' * (failed)`.
 
 ## Stopping one extension
 
@@ -46,9 +47,10 @@ When an extension stops, Chassis:
 1. calls `disable()`;
 2. closes what the extension handed to `onClose`, the last first; a resource that fails to close does not keep the others open;
 3. removes the services it registered and the watches it holds, and tells the other watchers that its services went;
-4. closes its class loader.
+4. closes what the host's preparation returned for this load;
+5. closes its class loader.
 
-Steps 2 to 4 happen even when `disable()` throws; the failure is logged as `The module <id> did not stop cleanly`. After `disable()` the context accepts no more resources: `onClose` throws `IllegalStateException`.
+Steps 2 to 5 happen even when `disable()` throws; the failure is logged as `The module <id> did not stop cleanly`. After `disable()` the context accepts no more resources: `onClose` throws `IllegalStateException`.
 
 An extension stops only after every enabled extension that depends on it has stopped, directly or through others. Those dependents become `WAITING`, with the stopped extension and the word for why it stopped as their reason, such as `'greeting' ^1 (disabled)`, and start again with it.
 
