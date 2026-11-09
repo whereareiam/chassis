@@ -63,7 +63,7 @@ Not in the repository yet: `chassis-adapter-attache` (shared libraries), `chassi
 
 ### Class Loading And Cleanup
 
-- An extension's loader looks in the export layer first, then its own jar and the jars the host's preparation added, then its dependencies' jars. Keep that order: an extension must not replace a class the host exports.
+- An extension's loader looks in the export layer first, then its own jar and the jars the host's preparation added, then the packages its dependencies export (`exports` in their descriptors). Keep that order: an extension must not replace a class the host exports, and must see of a dependency only what it exports.
 - Everything an extension registers goes through its context, so the host can remove it. A new place that holds extension objects removes them in the stop path and gets a `LeakCheck` test.
 - A failed `enable` cleans up exactly like a stop.
 
