@@ -16,6 +16,7 @@ Chassis is published to the [public Maven registry](https://registry.whereareiam
 | `chassis-api` | extensions, through the host's API | `Extension`, `ExtensionContext`, `Services`, `Extensions`, descriptors and states |
 | `chassis-common` | the host, shipped inside it | `ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile` |
 | `chassis-adapter-guice` | a host that makes extensions through Guice | `GuiceExtensionFactory`; see [Guice](./guice/index.md) |
+| `chassis-adapter-spring` | a host that makes extensions through Spring | `SpringExtensionFactory`; see [Spring](./spring/index.md) |
 | `chassis-adapter-attache` | a host whose extensions declare libraries through Attache | `AttacheLibraries`; see [Attache](./attache/index.md) |
 | `platform-neoforge` | a host on NeoForge | `NeoForgePlatform`; see [NeoForge](./neoforge/index.md) |
 | `chassis-testing` | the host's tests | `ExtensionJar`, `LeakCheck`; see [Testing a host](./testing/index.md) |
@@ -121,7 +122,7 @@ public final class ExampleHost {
 | `preparation` | Prepares each extension's class loader before its main class is loaded, such as adding the libraries it declares. Defaults to `ExtensionPreparation.NONE`. See [What extensions see](./class-loading/index.md#preparing-a-loader). |
 | `loggers` | Gives the `System.Logger` of a name: the host's kind word or an extension's id. Defaults to `System::getLogger`. |
 
-The last two constructor arguments make each load: `base -> base` hands every extension the context Chassis keeps, and `ExtensionFactory.CONSTRUCTOR` makes the main class through its public constructor without parameters. [Guice](./guice/index.md) replaces the factory.
+The last two constructor arguments make each load: `base -> base` hands every extension the context Chassis keeps, and `ExtensionFactory.CONSTRUCTOR` makes the main class through its public constructor without parameters. [Guice](./guice/index.md) and [Spring](./spring/index.md) replace the factory.
 
 `ChassisHost` makes every change under one lock on the caller's thread. Call `start`, `stop` and the [control API](./control/index.md) from the thread the host starts and stops its extensions on.
 

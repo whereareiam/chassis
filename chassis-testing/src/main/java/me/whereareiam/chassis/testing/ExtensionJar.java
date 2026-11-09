@@ -9,15 +9,18 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 /**
  * Writes an extension jar for a test: a descriptor and classes taken from the test's own class path, with their
- * nested classes. The classes must not lie in a package the host exports, or the host's copy is used instead.
+ * nested classes. Like a jar a build writes, it holds an entry for each folder, so class path scanning finds its
+ * packages. The classes must not lie in a package the host exports, or the host's copy is used instead.
  *
  * <pre>{@code
  * Path jar = ExtensionJar.of("arbor-module.yml", """
@@ -83,17 +86,18 @@ public final class ExtensionJar {
 		Files.createDirectories(target.toAbsolutePath().getParent());
 		Path temporary = Files.createTempFile(target.toAbsolutePath().getParent(), target.getFileName().toString(), ".tmp");
 		try (OutputStream output = Files.newOutputStream(temporary); JarOutputStream jar = new JarOutputStream(output)) {
-			for (Map.Entry<String, byte[]> file : files.entrySet()) put(jar, file.getKey(), file.getValue());
-			for (Class<?> type : classes) addClass(jar, type);
+			Set<String> folders = new HashSet<>();
+			for (Map.Entry<String, byte[]> file : files.entrySet()) put(jar, folders, file.getKey(), file.getValue());
+			for (Class<?> type : classes) addClass(jar, folders, type);
 		}
 		Files.move(temporary, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
 		return target;
 	}
 
-	private void addClass(JarOutputStream jar, Class<?> type) throws IOException {
+	private void addClass(JarOutputStream jar, Set<String> folders, Class<?> type) throws IOException {
 		String path = type.getName().replace('.', '/') + ".class";
-		put(jar, path, bytes(type, path));
+		put(jar, folders, path, bytes(type, path));
 
 		// Nested, local and anonymous classes: Outer$1, Outer$Inner, found next to the outer class's file.
 		String prefix = type.getName().substring(type.getName().lastIndexOf('.') + 1) + "$";
@@ -102,7 +106,7 @@ public final class ExtensionJar {
 		try (var siblings = Files.list(folder)) {
 			for (Path sibling : siblings.filter(file -> file.getFileName().toString().startsWith(prefix)).sorted().toList()) {
 				String nested = path.substring(0, path.lastIndexOf('/') + 1) + sibling.getFileName();
-				put(jar, nested, Files.readAllBytes(sibling));
+				put(jar, folders, nested, Files.readAllBytes(sibling));
 			}
 		}
 	}
@@ -126,7 +130,15 @@ public final class ExtensionJar {
 		}
 	}
 
-	private static void put(JarOutputStream jar, String path, byte[] content) throws IOException {
+	private static void put(JarOutputStream jar, Set<String> folders, String path, byte[] content) throws IOException {
+		for (int slash = path.indexOf('/'); slash >= 0; slash = path.indexOf('/', slash + 1)) {
+			String folder = path.substring(0, slash + 1);
+			if (!folders.add(folder)) continue;
+
+			jar.putNextEntry(new JarEntry(folder));
+			jar.closeEntry();
+		}
+
 		jar.putNextEntry(new JarEntry(path));
 		jar.write(content);
 		jar.closeEntry();
