@@ -33,6 +33,7 @@ class DescriptorReaderTest {
 				  - id: other
 				    version: ^2
 				    optional: true
+				exports: [net.example.monitoring.api]
 				platforms: [NeoForge]
 				plugins: [luckperms]
 				""");
@@ -42,6 +43,7 @@ class DescriptorReaderTest {
 		assertEquals(List.of("gateway", "fleet"), List.copyOf(descriptor.getRequires().keySet()));
 		assertTrue(descriptor.getDependencies().getFirst().isOptional());
 		assertEquals("^2", descriptor.getDependencies().getFirst().getVersion().toString());
+		assertEquals(List.of("net.example.monitoring.api"), descriptor.getExports());
 		assertEquals(List.of("neoforge"), descriptor.getPlatforms());
 		assertEquals(List.of("luckperms"), descriptor.getPlugins());
 	}
@@ -56,6 +58,7 @@ class DescriptorReaderTest {
 
 		assertEquals("tiny", descriptor.getName());
 		assertTrue(descriptor.getDependencies().isEmpty());
+		assertTrue(descriptor.getExports().isEmpty());
 		assertTrue(descriptor.getHost().accepts(Version.of(9, 0, 0)));
 	}
 
@@ -66,6 +69,8 @@ class DescriptorReaderTest {
 		assertThrows(DescriptorException.class, () -> read("id: Not_Valid\nversion: 1\nmain: a.B"));
 		assertThrows(DescriptorException.class, () -> read("id: ok\nversion: one\nmain: a.B"));
 		assertThrows(DescriptorException.class, () -> read("id: ok\nversion: 1\nmain: a.B\nhost: ^x"));
+		assertEquals("The export 'net.example.' of ok is not a package name",
+				assertThrows(DescriptorException.class, () -> read("id: ok\nversion: 1\nmain: a.B\nexports: [net.example.]")).getMessage());
 	}
 
 	private ExtensionDescriptor read(String text) throws DescriptorException {

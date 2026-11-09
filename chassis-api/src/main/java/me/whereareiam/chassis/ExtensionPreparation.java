@@ -62,7 +62,8 @@ public interface ExtensionPreparation {
 
 		/**
 		 * Adds a jar to the loader, after the extension's own jar. The export layer still comes first, so a jar
-		 * added here cannot replace a class the host exports.
+		 * added here cannot replace a class the host exports, and the extensions that depend on this one never see
+		 * its classes.
 		 *
 		 * @param jar the jar to add
 		 */
