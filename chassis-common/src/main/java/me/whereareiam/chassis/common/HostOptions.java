@@ -3,6 +3,7 @@ package me.whereareiam.chassis.common;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
+import me.whereareiam.chassis.ExtensionPreparation;
 import me.whereareiam.chassis.common.loading.ExportLayer;
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.platform.Platform;
@@ -64,6 +65,12 @@ public final class HostOptions {
 	private final @NotNull Map<String, Version> offered;
 	private final @NotNull Platform platform;
 	private final @NotNull ExportLayer exportLayer;
+	/**
+	 * Prepares each extension's class loader before its main class is loaded, such as
+	 * {@code chassis-adapter-attache}'s libraries. Defaults to {@link ExtensionPreparation#NONE}.
+	 */
+	@Builder.Default
+	private final @NotNull ExtensionPreparation preparation = ExtensionPreparation.NONE;
 	/**
 	 * Gives the logger of a name: the host's kind word, or an extension's id. Defaults to {@link System#getLogger}.
 	 */

@@ -17,7 +17,7 @@ When changing behavior:
 ### Module Map
 
 - `chassis-api`
-  The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `Extensions`, `Services` with `ServiceKey` and `ServiceRegistration`, `Platform`, `ExtensionDescriptor`, `InstalledExtension`, `Version`, `VersionRange`, `ExtensionState`, events and exceptions.
+  The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `ExtensionPreparation`, `Extensions`, `Services` with `ServiceKey` and `ServiceRegistration`, `Platform`, `ExtensionDescriptor`, `InstalledExtension`, `Version`, `VersionRange`, `ExtensionState`, events and exceptions.
 - `chassis-common`
   The standard host. `ChassisHost` owns every installed extension and implements `Extensions`; `HostOptions` is what a host tells it; `SelectionFile` keeps turned-off ids. Packages: `discovery` (`ExtensionDiscovery`, `DescriptorReader`), `resolution` (`DependencyResolver`), `loading` (`ExportLayer`, `ExtensionClassLoader`), `lifecycle` (`LoadedContext`), `service` (`ServiceRegistry`).
 - `chassis-adapter-guice`
@@ -63,7 +63,7 @@ Not in the repository yet: `chassis-adapter-attache` (shared libraries), `chassi
 
 ### Class Loading And Cleanup
 
-- An extension's loader looks in the export layer first, then its own jar, then its dependencies' jars. Keep that order: an extension must not replace a class the host exports.
+- An extension's loader looks in the export layer first, then its own jar and the jars the host's preparation added, then its dependencies' jars. Keep that order: an extension must not replace a class the host exports.
 - Everything an extension registers goes through its context, so the host can remove it. A new place that holds extension objects removes them in the stop path and gets a `LeakCheck` test.
 - A failed `enable` cleans up exactly like a stop.
 

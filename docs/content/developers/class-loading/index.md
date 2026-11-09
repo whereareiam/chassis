@@ -3,7 +3,7 @@ title: What extensions see
 description: The export layer, the class loader of each extension, and what keeps a stopped extension's classes alive.
 ---
 
-Each extension runs in a class loader of its own. That loader sees the JDK, the packages the host exports, the extension's own jar and the jars of the extensions it depends on, and nothing else of the host: not its private libraries, not the platform, not other extensions.
+Each extension runs in a class loader of its own. That loader sees the JDK, the packages the host exports, the extension's own jar, the jars a [preparation](#preparing-a-loader) added and the jars of the extensions it depends on, and nothing else of the host: not its private libraries, not the platform, not other extensions.
 
 ## The export layer
 
@@ -33,7 +33,7 @@ Leave everything else out. A library the host uses internally stays invisible to
 An extension's loader looks for a class in this order:
 
 1. the export layer: the JDK and the exported packages;
-2. the extension's own jar;
+2. the extension's own jar, then the jars a preparation added;
 3. the jars of the extensions it depends on, and the jars those depend on in turn.
 
 The third step covers every dependency that is enabled when the extension starts, optional dependencies included, so an extension uses the classes of a dependency directly:
@@ -48,6 +48,23 @@ String greeting = Shared.GREETING;
 Because the export layer comes first, an extension cannot replace a class the host exports. A jar that bundles its own copy of an exported library gets the host's copy at runtime, and a class of the extension that lies in an exported package is taken from the host. Keep extensions in packages of their own.
 
 A class that is neither exported nor in the extension's jar or its dependencies' jars is missing: loading the main class or running `enable` throws `NoClassDefFoundError`, and the extension is `FAILED` with that error as its failure. Either export the package from the host or shade the library into the extension's jar.
+
+## Preparing a loader
+
+A host can prepare each extension's loader before Chassis loads the extension's main class, with an `ExtensionPreparation` in `HostOptions.preparation`. It gets the new loader with the extension's descriptor and jar, may add jars to it, and returns what to close when that load ends:
+
+```java
+HostOptions options = HostOptions.builder()
+        // ...
+        .preparation(loader -> {
+            for (Path library : librariesOf(loader.descriptor()))
+                loader.addJar(library);
+            return () -> {};
+        })
+        .build();
+```
+
+A jar added this way comes after the extension's own jar, and the export layer still comes first, so it cannot replace a class the host exports. Chassis closes what the preparation returned when the extension stops, after what the extension handed to `onClose` and before the loader, and also when the extension fails to start. A preparation that throws makes the extension `FAILED` with that error.
 
 ## Types both sides see
 
