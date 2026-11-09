@@ -4,22 +4,22 @@ import me.whereareiam.chassis.Extensions;
 import me.whereareiam.chassis.exception.ExtensionException;
 import me.whereareiam.chassis.model.ExtensionDescriptor;
 import me.whereareiam.chassis.model.InstalledExtension;
-import me.whereareiam.chassis.type.ExtensionState;
 import me.whereareiam.commandant.CommandantKeys;
+import me.whereareiam.commandant.model.TranslatableDescription;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.ComponentLike;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.CommandManager;
-import org.incendo.cloud.description.Description;
 import org.incendo.cloud.permission.PredicatePermission;
 import org.incendo.cloud.suggestion.SuggestionProvider;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
@@ -41,7 +41,8 @@ import static org.incendo.cloud.parser.standard.StringParser.stringParser;
  * ExtensionCommands.builder(manager, () -> modules, "arbor", "module")
  *         .permissions((sender, permission) -> sender.hasPermission(permission))
  *         .replies(Sender::sendMessage)
- *         .messages(messages.getModules())
+ *         .keys("arbor.module.")
+ *         .arguments(TextArgument::of)
  *         .changes(scheduler.async())
  *         .build()
  *         .register();
@@ -53,18 +54,45 @@ import static org.incendo.cloud.parser.standard.StringParser.stringParser;
  * Commandant's definition id {@code <kind>-<name>}, so a host can word, alias or hide it with Commandant's
  * definitions.</p>
  *
+ * <p>Every answer is a {@link Component#translatable(String, ComponentLike...) translatable component}: its key is the
+ * host's prefix followed by the message, and its arguments are named by the host's
+ * {@link Builder#arguments(BiFunction) argument factory}, so the host's translator words it in each sender's
+ * language. The host writes these messages in its translations; Chassis ships no wording:</p>
+ *
+ * <table>
+ *   <caption>Messages and their arguments</caption>
+ *   <tr><th>Message</th><th>Arguments</th><th>Sent</th></tr>
+ *   <tr><td>{@code list.header}</td><td>{@code count}</td><td>above the list</td></tr>
+ *   <tr><td>{@code list.line}</td><td>{@code id}, {@code version}, {@code state}, {@code reason}</td><td>for each installed extension</td></tr>
+ *   <tr><td>{@code list.footer}</td><td></td><td>below the list</td></tr>
+ *   <tr><td>{@code list.empty}</td><td></td><td>instead of the list, when none is installed</td></tr>
+ *   <tr><td>{@code info}</td><td>{@code id}, {@code version}, {@code state}, {@code reason}, {@code name}, {@code description}, {@code authors}, {@code jar}</td><td>for {@code info}</td></tr>
+ *   <tr><td>{@code enabled}</td><td>{@code id}, {@code version}, {@code state}, {@code reason}</td><td>after {@code enable}</td></tr>
+ *   <tr><td>{@code disabled}</td><td>{@code id}, {@code version}, {@code state}, {@code reason}</td><td>after {@code disable}</td></tr>
+ *   <tr><td>{@code reloaded}</td><td>{@code id}, {@code version}, {@code state}, {@code reason}</td><td>after {@code reload}</td></tr>
+ *   <tr><td>{@code rescanned}</td><td>{@code count}</td><td>after {@code rescan}</td></tr>
+ *   <tr><td>{@code unknown}</td><td>{@code id}</td><td>when no extension has the id</td></tr>
+ *   <tr><td>{@code refused}</td><td>{@code id}, {@code why}</td><td>when a change could not be made</td></tr>
+ *   <tr><td>{@code state.enabled}, {@code state.disabled}, {@code state.waiting}, {@code state.failed}</td><td></td><td>as the value of {@code state}</td></tr>
+ *   <tr><td>{@code reason}</td><td>{@code why}</td><td>as the value of {@code reason} of a waiting or failed extension; an empty component otherwise</td></tr>
+ *   <tr><td>{@code description.list}, {@code description.info}, {@code description.enable}, {@code description.disable}, {@code description.reload}, {@code description.rescan}</td><td></td><td>as each command's description, which Commandant's help shows</td></tr>
+ * </table>
+ *
+ * <p>{@code count} is an {@link Integer}; {@code state} and {@code reason} are translatable components; every other
+ * value is text: {@code why} is what the extension waits for, why it failed, or why a change was refused, as Chassis
+ * words it; {@code authors} is empty when the descriptor names none.</p>
+ *
  * @param <S> the host's sender
  */
 public final class ExtensionCommands<S> {
-	private static final MiniMessage MINI = MiniMessage.miniMessage();
-
 	private final @NotNull CommandManager<S> manager;
 	private final @NotNull Supplier<Extensions> extensions;
 	private final @NotNull String root;
 	private final @NotNull String kind;
 	private final @NotNull BiPredicate<S, String> permissions;
 	private final @NotNull BiConsumer<S, Component> replies;
-	private final @NotNull Supplier<ExtensionMessages> messages;
+	private final @NotNull String keys;
+	private final @NotNull BiFunction<String, Object, ComponentLike> arguments;
 	private final @NotNull Executor changes;
 
 	private ExtensionCommands(Builder<S> builder) {
@@ -74,7 +102,8 @@ public final class ExtensionCommands<S> {
 		this.kind = builder.kind;
 		this.permissions = builder.permissions;
 		this.replies = builder.replies;
-		this.messages = builder.messages;
+		this.keys = builder.keys;
+		this.arguments = builder.arguments;
 		this.changes = builder.changes;
 	}
 
@@ -101,30 +130,29 @@ public final class ExtensionCommands<S> {
 	 * Registers the six commands with the manager.
 	 */
 	public void register() {
-		manager.command(command("list", "Lists every installed " + kind + " and its state").handler(context -> list(context.sender())));
-		manager.command(command("info", "Shows a " + kind + ", and why it waits or failed")
+		manager.command(command("list").handler(context -> list(context.sender())));
+		manager.command(command("info")
 				.required("id", stringParser(), ids())
 				.handler(context -> info(context.sender(), context.get("id"))));
-		manager.command(command("enable", "Turns a " + kind + " on and starts it")
+		manager.command(command("enable")
 				.required("id", stringParser(), ids())
 				.handler(context -> change(context.sender(), context.get("id"), Change.ENABLE)));
-		manager.command(command("disable", "Turns a " + kind + " off; those that depend on it wait")
+		manager.command(command("disable")
 				.required("id", stringParser(), ids())
 				.handler(context -> change(context.sender(), context.get("id"), Change.DISABLE)));
-		manager.command(command("reload", "Loads a " + kind + " again from its jar")
+		manager.command(command("reload")
 				.required("id", stringParser(), ids())
 				.handler(context -> change(context.sender(), context.get("id"), Change.RELOAD)));
-		manager.command(command("rescan", "Installs the " + kind + "s added since and starts what can start")
-				.handler(context -> rescan(context.sender())));
+		manager.command(command("rescan").handler(context -> rescan(context.sender())));
 	}
 
-	private Command.Builder<S> command(String name, String description) {
+	private Command.Builder<S> command(String name) {
 		String permission = root + ".command." + kind + "." + name;
 
 		return manager.commandBuilder(root)
 				.literal(kind)
 				.literal(name)
-				.commandDescription(Description.of(description))
+				.commandDescription(TranslatableDescription.of(keys + "description." + name))
 				.meta(CommandantKeys.DEFINITION_ID, kind + "-" + name)
 				.permission(PredicatePermission.<S>of(sender -> permissions.test(sender, permission)));
 	}
@@ -135,81 +163,82 @@ public final class ExtensionCommands<S> {
 
 	private void list(S sender) {
 		List<InstalledExtension> installed = extensions.get().list();
-		ExtensionMessages words = messages.get();
 		if (installed.isEmpty()) {
-			reply(sender, words.getListEmpty());
+			reply(sender, "list.empty");
 			return;
 		}
 
-		reply(sender, words.getListHeader(), Placeholder.unparsed("count", Integer.toString(installed.size())));
-		for (InstalledExtension extension : installed) reply(sender, words.getListLine(), of(extension));
+		reply(sender, "list.header", argument("count", installed.size()));
+		for (InstalledExtension extension : installed) reply(sender, "list.line", described(extension));
+		reply(sender, "list.footer");
 	}
 
 	private void info(S sender, String id) {
-		ExtensionMessages words = messages.get();
 		extensions.get().find(id).ifPresentOrElse(extension -> {
 			ExtensionDescriptor descriptor = extension.getDescriptor();
-			reply(sender, words.getInfo(), of(extension),
-					Placeholder.unparsed("name", descriptor == null ? extension.getId() : descriptor.getName()),
-					Placeholder.unparsed("description", descriptor == null || descriptor.getDescription() == null ? "" : descriptor.getDescription()),
-					Placeholder.unparsed("authors", descriptor == null || descriptor.getAuthors().isEmpty() ? "unknown" : String.join(", ", descriptor.getAuthors())),
-					Placeholder.unparsed("jar", extension.getJar().getFileName().toString()));
-		}, () -> reply(sender, words.getUnknown(), Placeholder.unparsed("id", id)));
+			reply(sender, "info", described(extension,
+					argument("name", descriptor == null ? extension.getId() : descriptor.getName()),
+					argument("description", descriptor == null || descriptor.getDescription() == null ? "" : descriptor.getDescription()),
+					argument("authors", descriptor == null ? "" : String.join(", ", descriptor.getAuthors())),
+					argument("jar", extension.getJar().getFileName().toString())));
+		}, () -> reply(sender, "unknown", argument("id", id)));
 	}
 
 	private void change(S sender, String id, Change change) {
 		changes.execute(() -> {
-			ExtensionMessages words = messages.get();
 			try {
 				InstalledExtension extension = switch (change) {
 					case ENABLE -> extensions.get().enable(id);
 					case DISABLE -> extensions.get().disable(id);
 					case RELOAD -> extensions.get().reload(id);
 				};
-				String template = switch (change) {
-					case ENABLE -> words.getEnabled();
-					case DISABLE -> words.getDisabled();
-					case RELOAD -> words.getReloaded();
+				String message = switch (change) {
+					case ENABLE -> "enabled";
+					case DISABLE -> "disabled";
+					case RELOAD -> "reloaded";
 				};
-				reply(sender, template, of(extension));
+				reply(sender, message, described(extension));
 			} catch (ExtensionException e) {
-				if (extensions.get().find(id).isEmpty()) reply(sender, words.getUnknown(), Placeholder.unparsed("id", id));
-				else reply(sender, words.getRefused(), Placeholder.unparsed("reason", e.getMessage()));
+				if (extensions.get().find(id).isEmpty()) reply(sender, "unknown", argument("id", id));
+				else reply(sender, "refused", argument("id", id), argument("why", String.valueOf(e.getMessage())));
 			}
 		});
 	}
 
 	private void rescan(S sender) {
-		changes.execute(() -> reply(sender, messages.get().getRescanned(),
-				Placeholder.unparsed("count", Integer.toString(extensions.get().rescan().size()))));
+		changes.execute(() -> reply(sender, "rescanned", argument("count", extensions.get().rescan().size())));
 	}
 
-	private TagResolver of(InstalledExtension extension) {
-		ExtensionMessages words = messages.get();
+	private ComponentLike[] described(InstalledExtension extension, ComponentLike... more) {
+		ExtensionDescriptor descriptor = extension.getDescriptor();
+		List<ComponentLike> described = new ArrayList<>(List.of(
+				argument("id", extension.getId()),
+				argument("version", descriptor == null ? "" : descriptor.getVersion().toString()),
+				argument("state", Component.translatable(keys + "state." + extension.getState().name().toLowerCase(Locale.ROOT))),
+				argument("reason", reason(extension))
+		));
+		described.addAll(List.of(more));
+
+		return described.toArray(ComponentLike[]::new);
+	}
+
+	private Component reason(InstalledExtension extension) {
 		String why = switch (extension.getState()) {
 			case WAITING -> String.join(", ", extension.getWaitingFor());
-			case FAILED -> extension.getFailure() == null ? "" : extension.getFailure().getMessage();
+			case FAILED -> extension.getFailure() == null ? "" : String.valueOf(extension.getFailure().getMessage());
 			default -> "";
 		};
-		String state = switch (extension.getState()) {
-			case ENABLED -> words.getStateEnabled();
-			case DISABLED -> words.getStateDisabled();
-			case WAITING -> words.getStateWaiting();
-			case FAILED -> words.getStateFailed();
-		};
+		if (why.isEmpty()) return Component.empty();
 
-		return TagResolver.resolver(
-				Placeholder.unparsed("id", extension.getId()),
-				Placeholder.unparsed("version", extension.getDescriptor() == null ? "" : extension.getDescriptor().getVersion().toString()),
-				Placeholder.component("state", MINI.deserialize(state)),
-				Placeholder.component("reason", why.isEmpty() || extension.getState() == ExtensionState.ENABLED ? Component.empty()
-						: MINI.deserialize(words.getReason(), Placeholder.unparsed("why", why)))
-		);
+		return Component.translatable(keys + "reason", argument("why", why));
 	}
 
-	private void reply(S sender, String template, TagResolver... resolvers) {
-		TagResolver all = TagResolver.resolver(TagResolver.resolver(resolvers), Placeholder.unparsed("kind", kind));
-		replies.accept(sender, MINI.deserialize(template, all));
+	private ComponentLike argument(String name, Object value) {
+		return arguments.apply(name, value);
+	}
+
+	private void reply(S sender, String message, ComponentLike... values) {
+		replies.accept(sender, Component.translatable(keys + message, values));
 	}
 
 	private enum Change {
@@ -231,14 +260,16 @@ public final class ExtensionCommands<S> {
 		private BiPredicate<S, String> permissions = (sender, permission) -> false;
 		private BiConsumer<S, Component> replies = (sender, message) -> {
 		};
-		private Supplier<ExtensionMessages> messages = ExtensionMessages::new;
+		private BiFunction<String, Object, ComponentLike> arguments = (name, value) -> value instanceof ComponentLike component ? component : Component.text(String.valueOf(value));
 		private Executor changes = Runnable::run;
+		private String keys;
 
 		private Builder(CommandManager<S> manager, Supplier<Extensions> extensions, String root, String kind) {
 			this.manager = manager;
 			this.extensions = extensions;
 			this.root = root;
 			this.kind = kind;
+			this.keys = root + "." + kind + ".";
 		}
 
 		/**
@@ -266,13 +297,29 @@ public final class ExtensionCommands<S> {
 		}
 
 		/**
-		 * Gives the messages, asked at every answer, so that a reloaded messages file takes effect at once.
+		 * Gives the prefix of every answer's translation key, ending with a dot; {@code <root>.<kind>.} when it is not
+		 * set, such as {@code arbor.module.}, so the list's header is {@code arbor.module.list.header}.
 		 *
-		 * @param messages the messages
+		 * @param keys the prefix
 		 * @return this builder
 		 */
-		public @NotNull Builder<S> messages(@NotNull Supplier<ExtensionMessages> messages) {
-			this.messages = messages;
+		public @NotNull Builder<S> keys(@NotNull String keys) {
+			this.keys = keys;
+
+			return this;
+		}
+
+		/**
+		 * Makes a named argument of an answer from its name and its value, such as Semantica's
+		 * {@code TextArgument::of}. A value keeps its type: a count is an {@link Integer}, so a translation may choose a
+		 * plural form by it, and a state or a reason is a translatable {@link Component}. When it is not set, each value
+		 * is an argument by position, in the order the class lists them, a value that is no component as its text.
+		 *
+		 * @param arguments makes an argument from a name and a value
+		 * @return this builder
+		 */
+		public @NotNull Builder<S> arguments(@NotNull BiFunction<String, Object, ComponentLike> arguments) {
+			this.arguments = arguments;
 
 			return this;
 		}

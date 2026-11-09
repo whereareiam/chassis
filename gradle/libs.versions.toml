@@ -12,9 +12,10 @@ lombok = "1.18.42"
 # general
 configura = "2.1.0"
 guice = "7.0.0"
-commandant = "1.0.0"
+commandant = "dev-b9903b5"
 cloud = "2.0.0"
 adventure = "4.25.0"
+adventure-v5 = "5.2.0"
 annotations = "26.0.1"
 
 # platform api
@@ -37,8 +38,7 @@ guice = { group = "com.google.inject", name = "guice", version.ref = "guice" }
 commandant-api = { group = "me.whereareiam", name = "commandant-api", version.ref = "commandant" }
 cloud-core = { group = "org.incendo", name = "cloud-core", version.ref = "cloud" }
 adventure-api = { group = "net.kyori", name = "adventure-api", version.ref = "adventure" }
-adventure-minimessage = { group = "net.kyori", name = "adventure-text-minimessage", version.ref = "adventure" }
-adventure-plain = { group = "net.kyori", name = "adventure-text-serializer-plain", version.ref = "adventure" }
+adventure-api-v5 = { group = "net.kyori", name = "adventure-api", version.ref = "adventure-v5" }
 annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
 
 # platform api
