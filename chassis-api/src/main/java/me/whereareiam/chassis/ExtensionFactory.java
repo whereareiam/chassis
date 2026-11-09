@@ -4,7 +4,8 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Makes the instance of an extension's main class. The default makes it through its public constructor without
- * parameters; {@code chassis-adapter-guice} makes it through an injector of its own.
+ * parameters; {@code chassis-adapter-guice} makes it through an injector of its own, {@code chassis-adapter-spring}
+ * through a Spring context of its own.
  */
 public interface ExtensionFactory {
 	/**

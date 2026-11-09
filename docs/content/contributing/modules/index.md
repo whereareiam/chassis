@@ -10,6 +10,7 @@ description: How the repository is laid out, which module owns what, and how a h
 | `chassis-api` | `chassis-api/` | The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `ExtensionPreparation`, `Extensions`, `Services`, `Platform`, descriptors, versions, states, events and exceptions. No behavior beyond parsing versions and ranges. |
 | `chassis-common` | `chassis-common/` | The standard host, `ChassisHost`, and everything it runs: discovery, resolution, loading, lifecycle, services and the selection file. |
 | `chassis-adapter-guice` | `chassis-adapter-guice/` | `GuiceExtensionFactory`. Guice is `compileOnly`; the host ships it. |
+| `chassis-adapter-spring` | `chassis-adapter-spring/` | `SpringExtensionFactory`, a child context of the host's per extension with the beans its dependencies export. Spring is `compileOnly`; the host ships it. |
 | `chassis-adapter-attache` | `chassis-adapter-attache/` | `AttacheLibraries`, the preparation that loads an extension's declared libraries into its loader. Attache is `compileOnly`; the host ships it. |
 | `platform-neoforge` | `chassis-platform/type/platform-neoforge/` | `NeoForgePlatform`. NeoForge's loader is `compileOnly`. |
 | `chassis-testing` | `chassis-testing/` | `ExtensionJar` and `LeakCheck` for hosts' tests. |

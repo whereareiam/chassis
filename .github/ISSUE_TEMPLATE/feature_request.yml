@@ -37,6 +37,7 @@ body:
         - Selection
         - Services
         - Guice
+        - Spring
         - Attache
         - Commands
         - NeoForge
