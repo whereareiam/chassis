@@ -346,7 +346,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		AutoCloseable prepared = null;
 		LoadedContext base = null;
 		try {
-			loader = new ExtensionClassLoader(entry.id(), entry.found.jar().toUri().toURL(), options.getExportLayer(), dependencies);
+			loader = new ExtensionClassLoader(entry.id(), entry.found.jar().toUri().toURL(), options.getExportLayer(), descriptor.getExports(), dependencies);
 			prepared = options.getPreparation().prepare(new PreparedLoader(descriptor, entry.found.jar(), loader));
 			Class<?> main = Class.forName(descriptor.getMain(), true, loader);
 			if (!kind.isAssignableFrom(main))

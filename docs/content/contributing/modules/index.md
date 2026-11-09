@@ -28,7 +28,7 @@ Not in the repository yet: adapters for shared libraries (`chassis-adapter-attac
 | `common` | `SelectionFile` | Reads and writes the list of turned-off ids. |
 | `common.discovery` | `ExtensionDiscovery`, `DescriptorReader` | List the jars of the folder and read and check each descriptor. A jar that cannot be read becomes a `Found` with a failure, never an exception. |
 | `common.resolution` | `DependencyResolver` | Decides, without side effects, which candidates fail, which wait and in which order the rest start. |
-| `common.loading` | `ExportLayer`, `ExtensionClassLoader` | The parent loader with the host's exports, and one loader per extension: export layer, own jar and the jars a preparation added, dependencies' jars. |
+| `common.loading` | `ExportLayer`, `ExtensionClassLoader` | The parent loader with the host's exports, and one loader per extension: export layer, own jar and the jars a preparation added, the packages its dependencies export. |
 | `common.lifecycle` | `LoadedContext` | The base context of one load. It keeps what the extension hands to `onClose` and removes the extension's services when closed. |
 | `common.service` | `ServiceRegistry` | The services of every owner, with `as(owner)` for an owner's view and `removeOwner(owner)` for its removal. |
 

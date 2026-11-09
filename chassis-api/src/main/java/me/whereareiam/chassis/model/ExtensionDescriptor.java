@@ -30,6 +30,7 @@ import java.util.Map;
  *   - id: other
  *     version: ^2
  *     optional: true
+ * exports: [net.oraylen.arbor.module.monitoring.api]
  * platforms: [neoforge]
  * plugins: [luckperms]
  * }</pre>
@@ -71,6 +72,13 @@ public final class ExtensionDescriptor {
 	 */
 	@Singular
 	private final @NotNull List<Dependency> dependencies;
+	/**
+	 * The packages of its jar that the extensions depending on it see, each with its subpackages. Nothing else of the
+	 * jar, and nothing its host's preparation added, is visible to them; an extension that exports nothing gives its
+	 * dependents no classes.
+	 */
+	@Singular
+	private final @NotNull List<String> exports;
 	/**
 	 * The platforms it runs on, such as {@code neoforge}; empty means every platform the host runs on.
 	 */

@@ -3,7 +3,7 @@ title: What extensions see
 description: The export layer, the class loader of each extension, and what keeps a stopped extension's classes alive.
 ---
 
-Each extension runs in a class loader of its own. That loader sees the JDK, the packages the host exports, the extension's own jar, the jars a [preparation](#preparing-a-loader) added and the jars of the extensions it depends on, and nothing else of the host: not its private libraries, not the platform, not other extensions.
+Each extension runs in a class loader of its own. That loader sees the JDK, the packages the host exports, the extension's own jar, the jars a [preparation](#preparing-a-loader) added and the packages the extensions it depends on export, and nothing else of the host: not its private libraries, not the platform, not other extensions.
 
 ## The export layer
 
@@ -34,20 +34,31 @@ An extension's loader looks for a class in this order:
 
 1. the export layer: the JDK and the exported packages;
 2. the extension's own jar, then the jars a preparation added;
-3. the jars of the extensions it depends on, and the jars those depend on in turn.
+3. the packages the extensions it depends on export, and those that their own dependencies export in turn.
 
-The third step covers every dependency that is enabled when the extension starts, optional dependencies included, so an extension uses the classes of a dependency directly:
+The third step covers every dependency that is enabled when the extension starts, optional dependencies included. A dependency names the packages its dependents see under `exports` in its [descriptor](../descriptor/index.md), each with its subpackages:
+
+```yaml
+id: greeting
+version: 1.4.0
+main: org.example.greeting.GreetingModule
+exports: [org.example.greeting.api]
+```
+
+An extension then uses those classes of the dependency directly:
 
 ```java
 // In the extension "dependent", which declares a dependency on "greeting":
-import org.example.greeting.Shared;
+import org.example.greeting.api.Shared;
 
 String greeting = Shared.GREETING;
 ```
 
+Nothing else of the dependency is visible: not its other packages and not the jars a preparation added for it. An extension that exports nothing gives its dependents no classes; they can still use the services it registers under types the host exports. Keep what dependents compile against in packages of its own, such as an `api` package, and export those.
+
 Because the export layer comes first, an extension cannot replace a class the host exports. A jar that bundles its own copy of an exported library gets the host's copy at runtime, and a class of the extension that lies in an exported package is taken from the host. Keep extensions in packages of their own.
 
-A class that is neither exported nor in the extension's jar or its dependencies' jars is missing: loading the main class or running `enable` throws `NoClassDefFoundError`, and the extension is `FAILED` with that error as its failure. Either export the package from the host or shade the library into the extension's jar.
+A class that is neither exported by the host, nor in the extension's own jars, nor exported by a dependency is missing: loading the main class or running `enable` throws `NoClassDefFoundError`, and the extension is `FAILED` with that error as its failure. Either export the package from the host or shade the library into the extension's jar.
 
 ## Preparing a loader
 
@@ -64,11 +75,11 @@ HostOptions options = HostOptions.builder()
         .build();
 ```
 
-A jar added this way comes after the extension's own jar, and the export layer still comes first, so it cannot replace a class the host exports. Chassis closes what the preparation returned when the extension stops, after what the extension handed to `onClose` and before the loader, and also when the extension fails to start. A preparation that throws makes the extension `FAILED` with that error.
+A jar added this way comes after the extension's own jar, and the export layer still comes first, so it cannot replace a class the host exports. It stays the extension's own: the extensions that depend on it never see its classes. Chassis closes what the preparation returned when the extension stops, after what the extension handed to `onClose` and before the loader, and also when the extension fails to start. A preparation that throws makes the extension `FAILED` with that error.
 
 ## Types both sides see
 
-An object can pass between the host and an extension, or between two extensions, only as a type both sides load from the same place. That is a type of an exported package, or a type of an extension that the other side depends on. The same rule applies to [service keys](../services/index.md): a service registered as `ServiceKey.of(Greeting.class)` is found only by code that sees the same `Greeting` class.
+An object can pass between the host and an extension, or between two extensions, only as a type both sides load from the same place. That is a type of a package the host exports, or of a package exported by an extension that the other side depends on. The same rule applies to [service keys](../services/index.md): a service registered as `ServiceKey.of(Greeting.class)` is found only by code that sees the same `Greeting` class.
 
 ## When an extension stops
 

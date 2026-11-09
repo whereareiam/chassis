@@ -20,6 +20,7 @@ dependencies:
     version: ^2
   - id: metrics
     optional: true
+exports: [com.example.monitoring.api]
 platforms: [neoforge]
 plugins: [luckperms]
 ```
@@ -39,6 +40,7 @@ Only `id`, `version` and `main` are required.
 | `host` | no | The range of the host's API versions the extension is built for, checked against `HostOptions.hostVersion`. Defaults to any version. |
 | `requires` | no | What the extension needs the host to offer, by the names the host gives them, each with a version range, checked against `HostOptions.offer(...)`. |
 | `dependencies` | no | Other extensions of the same host, each with `id`, an optional `version` range (default any) and `optional` (default `false`). |
+| `exports` | no | The packages of the jar that the extensions depending on it see, each with its subpackages. Defaults to none: dependents then see no class of the extension. See [What extensions see](../class-loading/index.md#one-extensions-class-loader). |
 | `platforms` | no | The platforms the extension runs on, such as `neoforge`, compared in lowercase with `Platform.name()`. Empty means every platform. |
 | `plugins` | no | Plugins or mods of the platform the extension needs, by the ids the platform knows them by. |
 
@@ -61,7 +63,7 @@ A failed extension's reason is `getFailure().getMessage()`; a waiting extension 
 
 ### Optional dependencies
 
-An optional dependency changes only the order. When it is installed and can start, it starts first and the extension's class loader sees its classes. When it is missing, turned off or fails, the extension starts without it. A version range on an optional dependency still has to accept the installed version, or the extension waits.
+An optional dependency changes only the order. When it is installed and can start, it starts first and the extension's class loader sees the packages it exports. When it is missing, turned off or fails, the extension starts without it. A version range on an optional dependency still has to accept the installed version, or the extension waits.
 
 ## Versions
 
@@ -98,6 +100,7 @@ A jar whose descriptor is missing, is not valid YAML, lacks a required field or 
 | no descriptor at the path the host names | `broken.jar has no example-module.yml` |
 | a required field is missing | `The descriptor of greeting names no 'main'` |
 | the id does not fit the pattern | `The id 'Not_Valid' of x.jar is not lowercase letters, digits and hyphens starting with a letter` |
+| an export is not a package name | `The export 'com.example.' of monitoring is not a package name` |
 | a version or range is malformed | `The version 'one' of greeting is not a version` |
 | a second jar has an id already found | `Both greeting.jar and second-greeting.jar are the extension 'greeting'; second-greeting.jar is left out` |
 

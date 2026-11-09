@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
  */
 public final class DescriptorReader {
 	private static final Pattern ID = Pattern.compile("[a-z][a-z0-9-]{0,63}");
+	private static final Pattern PACKAGE = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*");
 
 	/**
 	 * Reads and checks a descriptor.
@@ -50,6 +51,7 @@ public final class DescriptorReader {
 				.description(file.description)
 				.authors(file.authors == null ? List.of() : file.authors)
 				.host(range(id, "host", file.host))
+				.exports(packages(id, file.exports))
 				.platforms(lower(file.platforms))
 				.plugins(file.plugins == null ? List.of() : file.plugins);
 		if (file.requires != null)
@@ -99,6 +101,20 @@ public final class DescriptorReader {
 		}
 	}
 
+	private static List<String> packages(String id, @Nullable List<String> values) throws DescriptorException {
+		if (values == null) return List.of();
+
+		List<String> packages = new ArrayList<>();
+		for (String value : values) {
+			String name = value == null ? "" : value.trim();
+			if (!PACKAGE.matcher(name).matches())
+				throw new DescriptorException(id, "The export '" + value + "' of " + id + " is not a package name");
+			packages.add(name);
+		}
+
+		return packages;
+	}
+
 	private static List<String> lower(@Nullable List<String> values) {
 		if (values == null) return List.of();
 		List<String> lowered = new ArrayList<>();
@@ -119,6 +135,7 @@ public final class DescriptorReader {
 		private String host;
 		private Map<String, String> requires = new LinkedHashMap<>();
 		private List<DependencyEntry> dependencies;
+		private List<String> exports;
 		private List<String> platforms;
 		private List<String> plugins;
 	}

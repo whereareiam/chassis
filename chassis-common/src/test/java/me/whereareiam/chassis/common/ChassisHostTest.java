@@ -15,6 +15,7 @@ import org.example.dependent.DependentModule;
 import org.example.failing.FailingModule;
 import org.example.greeting.GreetingModule;
 import org.example.greeting.Shared;
+import org.example.secret.Secret;
 import org.example.library.LibraryModule;
 import org.example.library.LibraryText;
 import org.jetbrains.annotations.NotNull;
@@ -54,6 +55,9 @@ class ChassisHostTest {
 		System.clearProperty("chassis.test.dependent.saw");
 		System.clearProperty("chassis.test.dependent.junit");
 		System.clearProperty("chassis.test.library.saw");
+		System.clearProperty("chassis.test.dependent.shared");
+		System.clearProperty("chassis.test.dependent.secret");
+		System.clearProperty("chassis.test.dependent.library");
 	}
 
 	@AfterEach
@@ -81,6 +85,39 @@ class ChassisHostTest {
 		start();
 
 		assertEquals("false", System.getProperty("chassis.test.dependent.junit"));
+	}
+
+	@Test
+	void anExtensionSeesOfItsDependencyOnlyWhatItExports() throws Exception {
+		Path library = ExtensionJar.of("library.txt", "").with(LibraryText.class).write(folder.resolve("libraries/library.jar"));
+		greeting();
+		dependent("^1");
+
+		start(loader -> {
+			if (loader.descriptor().getId().equals("greeting")) loader.addJar(library);
+			return () -> {
+			};
+		});
+
+		assertEquals(ExtensionState.ENABLED, state("dependent"));
+		assertEquals("true", System.getProperty("chassis.test.dependent.shared"));
+		assertEquals("false", System.getProperty("chassis.test.dependent.secret"));
+		assertEquals("false", System.getProperty("chassis.test.dependent.library"));
+	}
+
+	@Test
+	void anExtensionSeesNoClassOfADependencyThatExportsNothing() throws Exception {
+		ExtensionJar.of(DESCRIPTOR, """
+				id: greeting
+				version: 1.4.0
+				main: org.example.greeting.GreetingModule
+				""").with(GreetingModule.class, Shared.class).write(folder.resolve("modules/greeting.jar"));
+		dependent("^1");
+
+		start();
+
+		assertEquals(ExtensionState.ENABLED, state("dependent"));
+		assertEquals("false", System.getProperty("chassis.test.dependent.shared"));
 	}
 
 	@Test
@@ -369,7 +406,8 @@ class ChassisHostTest {
 				name: Greeting
 				version: 1.4.0
 				main: org.example.greeting.GreetingModule
-				""").with(GreetingModule.class, Shared.class).write(folder.resolve("modules/greeting.jar"));
+				exports: [org.example.greeting]
+				""").with(GreetingModule.class, Shared.class, Secret.class).write(folder.resolve("modules/greeting.jar"));
 	}
 
 	private void library() throws Exception {

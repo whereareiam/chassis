@@ -23,7 +23,7 @@ ServiceKey<Greeting> greeting = ServiceKey.of(Greeting.class);                 /
 ServiceKey<Greeting> console = ServiceKey.of(Greeting.class, "console");
 ```
 
-The type must be one both sides see: a type of a package the host exports, or of an extension that the other side depends on. See [Types both sides see](../class-loading/index.md#types-both-sides-see).
+The type must be one both sides see: a type of a package the host exports, or of a package exported by an extension that the other side depends on. See [Types both sides see](../class-loading/index.md#types-both-sides-see).
 
 ## Registering and finding
 
@@ -63,7 +63,14 @@ A host that keeps services of extensions should keep them this way: an object ke
 
 ## Example: a service from one extension to another
 
-An extension can offer a service whose type lives in its own jar to the extensions that depend on it. The dependent sees the type through its [class loader](../class-loading/index.md#one-extensions-class-loader), and finds the service once its dependency has started:
+An extension can offer a service whose type lives in its own jar to the extensions that depend on it. It exports the type's package, the dependent sees the type through its [class loader](../class-loading/index.md#one-extensions-class-loader), and finds the service once its dependency has started:
+
+```yaml
+id: greeting
+version: 1.4.0
+main: org.example.greeting.GreetingModule
+exports: [org.example.greeting.api]
+```
 
 ```yaml
 id: dependent

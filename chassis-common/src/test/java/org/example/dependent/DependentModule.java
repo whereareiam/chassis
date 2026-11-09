@@ -14,6 +14,9 @@ public final class DependentModule implements TestModule {
 
 		System.setProperty("chassis.test.dependent.saw", greeting);
 		System.setProperty("chassis.test.dependent.junit", String.valueOf(visible("org.junit.jupiter.api.Test")));
+		System.setProperty("chassis.test.dependent.shared", String.valueOf(visible("org.example.greeting.Shared")));
+		System.setProperty("chassis.test.dependent.secret", String.valueOf(visible("org.example.secret.Secret")));
+		System.setProperty("chassis.test.dependent.library", String.valueOf(visible("org.example.library.LibraryText")));
 	}
 
 	private boolean visible(String name) {
