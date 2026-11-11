@@ -13,7 +13,9 @@ import me.whereareiam.chassis.testing.ExtensionJar;
 import me.whereareiam.chassis.testing.LeakCheck;
 import me.whereareiam.chassis.type.ExtensionState;
 import me.whereareiam.attache.type.VerbosityMode;
+import org.example.attache.GroupedModule;
 import org.example.attache.LetteredModule;
+import org.example.attache.driver.Driver;
 import org.example.attache.library.Letters;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AttacheLibrariesTest {
@@ -38,10 +41,13 @@ class AttacheLibrariesTest {
 	Path folder;
 
 	private ChassisHost<ExtensionContext> host;
+	private AttacheLibraries libraries;
 
 	@BeforeEach
 	void clearMarks() {
 		System.clearProperty("chassis.test.attache");
+		System.clearProperty("chassis.test.attache.before");
+		System.clearProperty("chassis.test.attache.after");
 	}
 
 	@AfterEach
@@ -78,6 +84,43 @@ class AttacheLibrariesTest {
 				lettered.getFailure().getMessage());
 	}
 
+	@Test
+	void anExtensionLoadsAGroupOfItsLibrariesWhenItAsks() throws Exception {
+		Path driver = ExtensionJar.of("driver.txt", "").with(Driver.class).write(folder.resolve("source/driver-1.0.0.jar"));
+		ExtensionJar.of(DESCRIPTOR, """
+				id: grouped
+				version: 1.0.0
+				main: org.example.attache.GroupedModule
+				""")
+				.with(GroupedModule.class)
+				.file("META-INF/attache/grouped/attache.xml", """
+						<?xml version="1.0" encoding="UTF-8"?>
+						<attache-descriptor project-path=":grouped" project-name="grouped" add-maven-central="false">
+						  <libraries>
+						    <library group-id="org.example" artifact-id="driver" version="1.0.0" group="sqlite">
+						      <urls>
+						        <url>%s</url>
+						      </urls>
+						    </library>
+						  </libraries>
+						</attache-descriptor>
+						""".formatted(driver.toUri()))
+				.write(folder.resolve("modules/grouped.jar"));
+
+		start();
+
+		assertEquals(ExtensionState.ENABLED, host.find("grouped").orElseThrow().getState());
+		assertEquals("false", System.getProperty("chassis.test.attache.before"));
+		assertEquals("true", System.getProperty("chassis.test.attache.after"));
+		assertThrows(IllegalArgumentException.class, () -> libraries.groups("grouped").load("postgres"));
+
+		WeakReference<ClassLoader> loader = new WeakReference<>(host.classLoader("grouped"));
+		host.disable("grouped");
+
+		assertTrue(LeakCheck.collected(loader, Duration.ofSeconds(10)), "the groups kept the extension's loader");
+		assertThrows(IllegalStateException.class, () -> libraries.groups("grouped").load("sqlite"));
+	}
+
 	private void lettered(String libraryUrl) throws Exception {
 		ExtensionJar.of(DESCRIPTOR, """
 				id: lettered
@@ -101,6 +144,10 @@ class AttacheLibrariesTest {
 	}
 
 	private void start() throws Exception {
+		libraries = AttacheLibraries.builder()
+				.folder(folder.resolve("libraries"))
+				.verbosity(VerbosityMode.QUIET)
+				.build();
 		HostOptions options = HostOptions.builder()
 				.kind("module")
 				.folder(folder.resolve("modules"))
@@ -120,12 +167,10 @@ class AttacheLibrariesTest {
 					}
 				})
 				.exportLayer(new ExportLayer(getClass().getClassLoader(), List.of("me.whereareiam.chassis")))
-				.preparation(AttacheLibraries.builder()
-						.folder(folder.resolve("libraries"))
-						.verbosity(VerbosityMode.QUIET)
-						.build())
+				.preparation(libraries)
 				.build();
-		host = new ChassisHost<>(options, AttacheModule.class, base -> base, ExtensionFactory.CONSTRUCTOR);
+		host = new ChassisHost<>(options, AttacheModule.class,
+				base -> new GroupedContext(base, libraries.groups(base.descriptor().getId())), ExtensionFactory.CONSTRUCTOR);
 		host.start();
 	}
 

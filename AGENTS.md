@@ -71,7 +71,7 @@ Not in the repository yet: a platform for BungeeCord. Do not document it as exis
 
 ### Class Loading And Cleanup
 
-- An extension's loader looks in the export layer first, then the packages it names of the platform's peers, its plugins or mods (`peers[].packages`), then its own jar and the jars the host's preparation added, then the packages its dependencies export (`exports` in their descriptors). Keep that order: an extension must not replace a class the host or a named peer package provides, and must see of a dependency or plugin only what is named.
+- An extension's loader looks in the export layer first, then the packages it names of the platform's peers, its plugins or mods (`peers[].packages`), then the packages its dependencies export (`exports` in their descriptors), then its own jar and the jars the host's preparation added. Keep that order: an extension must not replace a class the host, a named plugin package or a dependency provides, and must see of a dependency or plugin only what is named.
 - Everything an extension registers goes through its context, so the host can remove it. A new place that holds extension objects removes them in the stop path and gets a `LeakCheck` test.
 - A failed `enable` cleans up exactly like a stop.
 
