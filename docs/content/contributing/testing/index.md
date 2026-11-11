@@ -15,7 +15,7 @@ Every module tests itself with JUnit under `src/test/java`, and `./gradlew test`
 | services, priorities and watches | `chassis-common`: `ServiceRegistryTest` |
 | the Guice adapter | `chassis-adapter-guice`: `GuiceExtensionFactoryTest` |
 
-`platform-neoforge` has no tests; `NeoForgePlatform` needs a running NeoForge.
+`platform-neoforge` has no tests; `NeoForgePlatform` needs a running NeoForge. `BukkitPlatformTest` and `VelocityPlatformTest` give their platform a server or proxy made of `java.lang.reflect.Proxy` instances that answer only what the platform asks.
 
 Extend the closest existing test instead of starting a parallel style.
 

@@ -24,6 +24,9 @@ dependencyResolutionManagement {
         mavenLocal()
         mavenCentral()
         maven("https://registry.whereareiam.me/maven/packages")
+        // The Bukkit and Velocity platforms compile against Spigot's and Velocity's API.
+        maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+        maven("https://repo.papermc.io/repository/maven-public/")
     }
 }
 
@@ -48,6 +51,12 @@ project(":chassis-adapter-commandant").projectDir = file("chassis-adapter-comman
 
 include(":platform-neoforge")
 project(":platform-neoforge").projectDir = file("chassis-platform/type/platform-neoforge")
+
+include(":platform-bukkit")
+project(":platform-bukkit").projectDir = file("chassis-platform/type/platform-bukkit")
+
+include(":platform-velocity")
+project(":platform-velocity").projectDir = file("chassis-platform/type/platform-velocity")
 
 include(":chassis-testing")
 project(":chassis-testing").projectDir = file("chassis-testing")

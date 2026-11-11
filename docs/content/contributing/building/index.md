@@ -17,7 +17,7 @@ Run from the repository root. Sources are compiled and tested with Java 21 throu
 
 `build` also writes each module's jar, sources jar and Javadoc jar under the module's `build/libs/`.
 
-The first build downloads Gradle's plugins and the dependencies, including NeoForge's loader for `platform-neoforge`, from Maven Central, the Gradle plugin portal, NeoForge's repositories and `https://registry.whereareiam.me/maven/packages`.
+The first build downloads Gradle's plugins and the dependencies, including NeoForge's loader for `platform-neoforge`, Spigot's API for `platform-bukkit` and Velocity's for `platform-velocity`, from Maven Central, the Gradle plugin portal, NeoForge's, Spigot's and PaperMC's repositories and `https://registry.whereareiam.me/maven/packages`.
 
 ## Versions
 

@@ -13,6 +13,8 @@ description: How the repository is laid out, which module owns what, and how a h
 | `chassis-adapter-spring` | `chassis-adapter-spring/` | `SpringExtensionFactory`, a child context of the host's per extension with the beans its dependencies export. Spring is `compileOnly`; the host ships it. |
 | `chassis-adapter-attache` | `chassis-adapter-attache/` | `AttacheLibraries`, the preparation that loads an extension's declared libraries into its loader. Attache is `compileOnly`; the host ships it. |
 | `platform-neoforge` | `chassis-platform/type/platform-neoforge/` | `NeoForgePlatform`. NeoForge's loader is `compileOnly`. |
+| `platform-bukkit` | `chassis-platform/type/platform-bukkit/` | `BukkitPlatform`. Spigot's API is `compileOnly`. |
+| `platform-velocity` | `chassis-platform/type/platform-velocity/` | `VelocityPlatform`. Velocity 3's API is `compileOnly`; Velocity 4 keeps the methods it uses. |
 | `chassis-testing` | `chassis-testing/` | `ExtensionJar` and `LeakCheck` for hosts' tests. |
 
 Outside their tests, the other modules depend on `chassis-api` and on no other module of Chassis; `chassis-common` reads YAML through Configura. Every module is published under `me.whereareiam.chassis`.

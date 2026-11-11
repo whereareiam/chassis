@@ -31,6 +31,8 @@ body:
       label: Platform
       options:
         - NeoForge
+        - Bukkit
+        - Velocity
         - Other platform
         - No platform (tests or a plain JVM application)
     validations:
