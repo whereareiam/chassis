@@ -2,6 +2,7 @@ package me.whereareiam.chassis.common.lifecycle;
 
 import me.whereareiam.chassis.ExtensionContext;
 import me.whereareiam.chassis.common.service.ServiceRegistry;
+import me.whereareiam.chassis.library.ExtensionLibraries;
 import me.whereareiam.chassis.model.ExtensionDescriptor;
 import me.whereareiam.chassis.service.Services;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +21,7 @@ public final class LoadedContext implements ExtensionContext {
 	private final @NotNull System.Logger logger;
 	private final @NotNull ServiceRegistry registry;
 	private final @NotNull Services services;
+	private final @NotNull ExtensionLibraries libraries;
 	private final Deque<AutoCloseable> resources = new ArrayDeque<>();
 	private boolean closed;
 
@@ -27,13 +29,15 @@ public final class LoadedContext implements ExtensionContext {
 			@NotNull ExtensionDescriptor descriptor,
 			@NotNull Path dataFolder,
 			@NotNull System.Logger logger,
-			@NotNull ServiceRegistry registry
+			@NotNull ServiceRegistry registry,
+			@NotNull ExtensionLibraries libraries
 	) {
 		this.descriptor = descriptor;
 		this.dataFolder = dataFolder;
 		this.logger = logger;
 		this.registry = registry;
 		this.services = registry.as(descriptor.getId());
+		this.libraries = libraries;
 	}
 
 	@Override
@@ -54,6 +58,11 @@ public final class LoadedContext implements ExtensionContext {
 	@Override
 	public @NotNull Services services() {
 		return services;
+	}
+
+	@Override
+	public @NotNull ExtensionLibraries libraries() {
+		return libraries;
 	}
 
 	@Override

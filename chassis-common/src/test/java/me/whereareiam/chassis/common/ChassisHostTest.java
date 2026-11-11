@@ -3,6 +3,7 @@ package me.whereareiam.chassis.common;
 import me.whereareiam.chassis.ExtensionContext;
 import me.whereareiam.chassis.ExtensionFactory;
 import me.whereareiam.chassis.common.loading.ExportLayer;
+import me.whereareiam.chassis.library.LibraryLoader;
 import me.whereareiam.chassis.model.InstalledExtension;
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.platform.Platform;
@@ -41,6 +42,7 @@ class ChassisHostTest {
 	Path folder;
 
 	private final Set<String> plugins = new java.util.HashSet<>();
+	private LibraryLoader libraries = LibraryLoader.NONE;
 	private ChassisHost<ExtensionContext> host;
 
 	@BeforeEach
@@ -245,6 +247,26 @@ class ChassisHostTest {
 	}
 
 	@Test
+	void whatTheLibraryLoaderHandsOverClosesWhenTheExtensionStopsOrCannotLoadItsLibraries() throws Exception {
+		List<String> closed = new ArrayList<>();
+		libraries = target -> {
+			target.onClose(() -> closed.add(target.descriptor().getId()));
+			if (target.descriptor().getId().equals("dependent")) throw new IllegalStateException("no repository answers");
+
+			return LibraryLoader.NONE.load(target);
+		};
+		greeting();
+		dependent("^1");
+
+		start();
+
+		assertEquals(List.of("dependent"), closed);
+		assertEquals("'dependent' could not load its libraries: no repository answers", host.find("dependent").orElseThrow().getFailure().getMessage());
+		host.disable("greeting");
+		assertEquals(List.of("dependent", "greeting"), closed);
+	}
+
+	@Test
 	void extensionsWhoseDependenciesFormACycleFail() throws Exception {
 		ExtensionJar.of(DESCRIPTOR, """
 				id: left
@@ -324,6 +346,7 @@ class ChassisHostTest {
 					}
 				})
 				.exportLayer(new ExportLayer(getClass().getClassLoader(), List.of("me.whereareiam.chassis")))
+				.libraries(libraries)
 				.build();
 		host = new ChassisHost<>(options, TestModule.class, base -> base, ExtensionFactory.CONSTRUCTOR);
 		host.start();

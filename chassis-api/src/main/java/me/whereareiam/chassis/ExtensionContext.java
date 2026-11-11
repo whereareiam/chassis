@@ -1,5 +1,6 @@
 package me.whereareiam.chassis;
 
+import me.whereareiam.chassis.library.ExtensionLibraries;
 import me.whereareiam.chassis.model.ExtensionDescriptor;
 import me.whereareiam.chassis.service.Services;
 import org.jetbrains.annotations.NotNull;
@@ -40,6 +41,14 @@ public interface ExtensionContext {
 	 * @return the services as this extension
 	 */
 	@NotNull Services services();
+
+	/**
+	 * Returns the libraries the extension declares, to load its groups. The host's {@link
+	 * me.whereareiam.chassis.library.LibraryLoader} loaded the others before the main class.
+	 *
+	 * @return the extension's libraries
+	 */
+	@NotNull ExtensionLibraries libraries();
 
 	/**
 	 * Hands a resource to the host, which closes it when the extension stops, after {@link Extension#disable()}. Resources

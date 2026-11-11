@@ -7,10 +7,12 @@ import me.whereareiam.chassis.Extensions;
 import me.whereareiam.chassis.common.discovery.ExtensionDiscovery;
 import me.whereareiam.chassis.common.lifecycle.LoadedContext;
 import me.whereareiam.chassis.common.loading.ExtensionClassLoader;
+import me.whereareiam.chassis.common.loading.LoadedLibraries;
 import me.whereareiam.chassis.common.resolution.DependencyResolver;
 import me.whereareiam.chassis.common.service.ServiceRegistry;
 import me.whereareiam.chassis.event.ExtensionEvent;
 import me.whereareiam.chassis.exception.ExtensionException;
+import me.whereareiam.chassis.library.ExtensionLibraries;
 import me.whereareiam.chassis.model.ExtensionDescriptor;
 import me.whereareiam.chassis.model.InstalledExtension;
 import me.whereareiam.chassis.service.Services;
@@ -342,20 +344,28 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		}
 
 		ExtensionClassLoader loader = null;
+		LoadedLibraries libraries = null;
 		LoadedContext base = null;
 		try {
 			loader = new ExtensionClassLoader(entry.id(), entry.found.jar().toUri().toURL(), options.getExportLayer(), dependencies);
+			libraries = new LoadedLibraries(descriptor, entry.found.jar(), loader);
+			ExtensionLibraries declared;
+			try {
+				declared = options.getLibraries().load(libraries);
+			} catch (Exception e) {
+				throw new ExtensionException(entry.id(), "'" + entry.id() + "' could not load its libraries: " + e.getMessage(), detached(e));
+			}
 			Class<?> main = Class.forName(descriptor.getMain(), true, loader);
 			if (!kind.isAssignableFrom(main))
 				throw new ExtensionException(entry.id(), descriptor.getMain() + " is no " + kind.getName());
 
 			Path dataFolder = Files.createDirectories(options.getDataFolder().resolve(entry.id()));
-			base = new LoadedContext(descriptor, dataFolder, options.getLoggers().apply(entry.id()), registry);
+			base = new LoadedContext(descriptor, dataFolder, options.getLoggers().apply(entry.id()), registry, declared);
 			C context = contexts.create(base);
 			Extension<C> instance = (Extension<C>) factory.create(main, context);
 			instance.enable(context);
 
-			entry.loaded = new Loaded(loader, instance, base);
+			entry.loaded = new Loaded(loader, libraries, instance, base);
 			started.add(entry.id());
 			change(entry, ExtensionState.ENABLED, List.of(), null);
 			logger.log(System.Logger.Level.DEBUG, "Enabled the " + options.getKind() + " " + descriptor.getId() + " " + descriptor.getVersion());
@@ -366,6 +376,10 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 
 			if (base != null) {
 				Exception cleanup = base.close();
+				if (cleanup != null) failure.addSuppressed(cleanup);
+			}
+			if (libraries != null) {
+				Exception cleanup = libraries.close();
 				if (cleanup != null) failure.addSuppressed(cleanup);
 			}
 			closeLoader(loader, failure);
@@ -438,9 +452,10 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 			if (e instanceof VirtualMachineError error) throw error;
 			failure = e;
 		}
-		Exception cleanup = loaded.context.close();
-		if (failure == null) failure = cleanup;
-		else if (cleanup != null) failure.addSuppressed(cleanup);
+		for (Exception cleanup : new Exception[]{loaded.context.close(), loaded.libraries.close()}) {
+			if (failure == null) failure = cleanup;
+			else if (cleanup != null) failure.addSuppressed(cleanup);
+		}
 		if (failure != null) logger.log(System.Logger.Level.WARNING, "The " + options.getKind() + " " + entry.id() + " did not stop cleanly", failure);
 		closeLoader(loaded.loader, null);
 
@@ -552,11 +567,13 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 
 	private final class Loaded {
 		private final ExtensionClassLoader loader;
+		private final LoadedLibraries libraries;
 		private final Extension<C> instance;
 		private final LoadedContext context;
 
-		private Loaded(ExtensionClassLoader loader, Extension<C> instance, LoadedContext context) {
+		private Loaded(ExtensionClassLoader loader, LoadedLibraries libraries, Extension<C> instance, LoadedContext context) {
 			this.loader = loader;
+			this.libraries = libraries;
 			this.instance = instance;
 			this.context = context;
 		}

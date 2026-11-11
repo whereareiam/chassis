@@ -7,6 +7,7 @@ import com.google.inject.Key;
 import com.google.inject.Stage;
 import me.whereareiam.chassis.ExtensionContext;
 import me.whereareiam.chassis.ExtensionFactory;
+import me.whereareiam.chassis.library.ExtensionLibraries;
 import me.whereareiam.chassis.model.ExtensionDescriptor;
 import me.whereareiam.chassis.service.Services;
 import org.jetbrains.annotations.NotNull;
@@ -66,6 +67,7 @@ public final class GuiceExtensionFactory<C extends ExtensionContext> implements 
 			if (contextType != ExtensionContext.class) binder.bind(ExtensionContext.class).toInstance(typed);
 			binder.bind(Services.class).toInstance(typed.services());
 			binder.bind(ExtensionDescriptor.class).toInstance(typed.descriptor());
+			binder.bind(ExtensionLibraries.class).toInstance(typed.libraries());
 			for (Key<?> key : exported) export(binder, key);
 			bindings.accept(binder, typed);
 		});

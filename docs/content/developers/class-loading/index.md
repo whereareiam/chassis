@@ -33,7 +33,7 @@ Leave everything else out. A library the host uses internally stays invisible to
 An extension's loader looks for a class in this order:
 
 1. the export layer: the JDK and the exported packages;
-2. the extension's own jar;
+2. the extension's own jar and the [libraries](../libraries/index.md) the host loaded for it;
 3. the jars of the extensions it depends on, and the jars those depend on in turn.
 
 The third step covers every dependency that is enabled when the extension starts, optional dependencies included, so an extension uses the classes of a dependency directly:

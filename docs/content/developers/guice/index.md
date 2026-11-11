@@ -49,6 +49,7 @@ ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ExampleModule.cl
 | the context type given to `builder`, and `ExtensionContext` | the context of this load |
 | `Services` | the services as this extension, so what it registers is removed when it stops |
 | `ExtensionDescriptor` | the extension's descriptor |
+| `ExtensionLibraries` | the extension's [libraries](../libraries/index.md) |
 | each key passed to `export` | asked from the host's injector every time it is injected, so the host's scopes apply |
 | what `bindings` adds | made from the context of this load |
 

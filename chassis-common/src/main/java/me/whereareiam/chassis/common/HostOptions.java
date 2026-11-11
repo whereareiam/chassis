@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
 import me.whereareiam.chassis.common.loading.ExportLayer;
+import me.whereareiam.chassis.library.LibraryLoader;
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.platform.Platform;
 import org.jetbrains.annotations.NotNull;
@@ -69,4 +70,9 @@ public final class HostOptions {
 	 */
 	@Builder.Default
 	private final @NotNull Function<String, System.Logger> loggers = System::getLogger;
+	/**
+	 * Loads the libraries each extension declares into its class loader. Defaults to {@link LibraryLoader#NONE}.
+	 */
+	@Builder.Default
+	private final @NotNull LibraryLoader libraries = LibraryLoader.NONE;
 }
