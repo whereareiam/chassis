@@ -35,7 +35,12 @@ class DescriptorReaderTest {
 				    optional: true
 				exports: [net.example.monitoring.api]
 				platforms: [{name: NeoForge}]
-				plugins: [luckperms]
+				peers:
+				  - id: luckperms
+				    version: ^5
+				    packages: [net.luckperms.api]
+				  - id: placeholderapi
+				    optional: true
 				""");
 
 		assertEquals("monitoring", descriptor.getId());
@@ -45,7 +50,11 @@ class DescriptorReaderTest {
 		assertEquals("^2", descriptor.getDependencies().getFirst().getVersion().toString());
 		assertEquals(List.of("net.example.monitoring.api"), descriptor.getExports());
 		assertEquals(List.of("neoforge"), descriptor.getPlatforms().stream().map(ExtensionDescriptor.SupportedPlatform::getName).toList());
-		assertEquals(List.of("luckperms"), descriptor.getPlugins());
+		assertEquals(List.of("luckperms", "placeholderapi"), descriptor.getPeers().stream().map(ExtensionDescriptor.PeerDependency::getId).toList());
+		assertEquals("^5", descriptor.getPeers().getFirst().getVersion().toString());
+		assertTrue(descriptor.getPeers().get(1).isOptional());
+		assertEquals(List.of("net.luckperms.api"), descriptor.getPeers().getFirst().getPackages());
+		assertTrue(descriptor.getPeers().get(1).getPackages().isEmpty());
 	}
 
 	@Test

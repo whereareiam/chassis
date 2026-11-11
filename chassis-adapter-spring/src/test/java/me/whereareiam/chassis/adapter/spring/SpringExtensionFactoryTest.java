@@ -7,6 +7,7 @@ import me.whereareiam.chassis.common.loading.ExportLayer;
 import me.whereareiam.chassis.model.InstalledExtension;
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.platform.Platform;
+import me.whereareiam.chassis.platform.PlatformPeer;
 import me.whereareiam.chassis.testing.ExtensionJar;
 import me.whereareiam.chassis.testing.LeakCheck;
 import me.whereareiam.chassis.type.ExtensionState;
@@ -27,6 +28,7 @@ import java.lang.ref.WeakReference;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -128,8 +130,8 @@ class SpringExtensionFactoryTest {
 					}
 
 					@Override
-					public boolean hasPlugin(@NotNull String id) {
-						return false;
+					public @NotNull Optional<PlatformPeer> peer(@NotNull String id) {
+						return Optional.empty();
 					}
 				})
 				.exportLayer(new ExportLayer(getClass().getClassLoader(), List.of("me.whereareiam.chassis", "org.springframework")))

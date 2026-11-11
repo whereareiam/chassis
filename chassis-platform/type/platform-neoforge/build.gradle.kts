@@ -9,4 +9,6 @@ dependencies {
     api(projects.chassisApi)
 
     compileOnly(libs.fancymodloader) { isTransitive = false }
+    // The type of a mod's version, which NeoForge ships.
+    compileOnly(libs.maven.artifact) { isTransitive = false }
 }

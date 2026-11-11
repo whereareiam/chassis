@@ -3,7 +3,9 @@ package me.whereareiam.chassis.platform.bukkit;
 import me.whereareiam.chassis.model.Version;
 import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
+import me.whereareiam.chassis.platform.PlatformPeer;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -13,6 +15,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BukkitPlatformTest {
@@ -36,9 +39,11 @@ class BukkitPlatformTest {
 	void aPluginCountsOnceItIsEnabled() {
 		BukkitPlatform platform = new BukkitPlatform(server(Map.of("LuckPerms", true, "Vault", false)), "paper", Version.parse("1.21.4"));
 
-		assertTrue(platform.hasPlugin("LuckPerms"));
-		assertFalse(platform.hasPlugin("Vault"));
-		assertFalse(platform.hasPlugin("Missing"));
+		PlatformPeer luckPerms = platform.peer("LuckPerms").orElseThrow();
+		assertEquals("5.4.1", luckPerms.getVersion());
+		assertSame(BukkitPlatformTest.class.getClassLoader(), luckPerms.getClassLoader());
+		assertTrue(platform.peer("Vault").isEmpty());
+		assertTrue(platform.peer("Missing").isEmpty());
 	}
 
 	// A loader that has the given classes, answering each with some class, as a check of presence needs no more.
@@ -60,7 +65,15 @@ class BukkitPlatformTest {
 			if (!method.equals("getPlugin")) return null;
 			Boolean enabled = plugins.get((String) args[0]);
 
-			return enabled == null ? null : proxy(Plugin.class, (pluginMethod, pluginArgs) -> pluginMethod.equals("isEnabled") ? enabled : null);
+			if (enabled == null) return null;
+			PluginDescriptionFile description = new PluginDescriptionFile((String) args[0], "5.4.1", "org.example.Main");
+
+			return proxy(Plugin.class, (pluginMethod, pluginArgs) -> switch (pluginMethod) {
+				case "isEnabled" -> enabled;
+				case "getName" -> args[0];
+				case "getDescription" -> description;
+				default -> null;
+			});
 		});
 
 		return proxy(Server.class, (method, args) -> method.equals("getPluginManager") ? manager : null);

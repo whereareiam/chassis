@@ -4,6 +4,7 @@ import me.whereareiam.chassis.model.ExtensionDescriptor;
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.model.VersionRange;
 import me.whereareiam.chassis.platform.Platform;
+import me.whereareiam.chassis.platform.PlatformPeer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -12,11 +13,12 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
  * Decides which extensions can start and in which order: what fits the host and the platform, what waits for a
- * dependency or a plugin, and the order that starts every dependency before the extensions that need it.
+ * dependency or a peer, and the order that starts every dependency before the extensions that need it.
  */
 public final class DependencyResolver {
 	private final @NotNull Version hostVersion;
@@ -120,8 +122,10 @@ public final class DependencyResolver {
 			Map<String, List<String>> waiting
 	) {
 		List<String> reasons = new ArrayList<>();
-		for (String plugin : descriptor.getPlugins())
-			if (!platform.hasPlugin(plugin)) reasons.add("the plugin '" + plugin + "', which is not loaded");
+		for (ExtensionDescriptor.PeerDependency peer : descriptor.getPeers()) {
+			String why = peerMissing(peer);
+			if (why != null) reasons.add(why);
+		}
 
 		for (ExtensionDescriptor.Dependency dependency : descriptor.getDependencies()) {
 			ExtensionDescriptor target = pending.get(dependency.getId());
@@ -141,6 +145,26 @@ public final class DependencyResolver {
 		}
 
 		return reasons;
+	}
+
+	// Why a peer keeps the extension waiting: it is required and not loaded, or loaded in a version the range does
+	// not accept; null when it does not.
+	private String peerMissing(ExtensionDescriptor.PeerDependency dependency) {
+		Optional<PlatformPeer> loaded = platform.peer(dependency.getId());
+		String named = "the peer '" + dependency.getId() + "'" + (dependency.getVersion().equals(VersionRange.ANY) ? "" : " " + dependency.getVersion());
+		if (loaded.isEmpty()) return dependency.isOptional() ? null : named + ", which is not loaded";
+		if (dependency.getVersion().equals(VersionRange.ANY)) return null;
+
+		String stated = loaded.get().getVersion();
+		if (stated == null) return named + ", which states no version";
+		Version version;
+		try {
+			version = Version.parse(stated.trim());
+		} catch (IllegalArgumentException unreadable) {
+			return named + ", whose version '" + stated + "' is no version";
+		}
+
+		return dependency.getVersion().accepts(version) ? null : named + ", and " + version + " is loaded";
 	}
 
 	private List<String> order(Map<String, ExtensionDescriptor> pending, Map<String, ExtensionDescriptor> running, Map<String, String> failed) {

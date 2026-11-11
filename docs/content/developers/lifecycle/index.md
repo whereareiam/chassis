@@ -8,7 +8,7 @@ Every installed extension is in one of four states, an `ExtensionState`:
 | State | Meaning | Leaves it when |
 | --- | --- | --- |
 | `ENABLED` | It runs. | It is turned off, reloaded, a dependency stops, or the host stops. |
-| `WAITING` | It waits for a dependency or a plugin of the platform; `getWaitingFor()` says which. | What it waits for is there: after a dependency starts, `enable`, `rescan` or `reload`. |
+| `WAITING` | It waits for a dependency or a peer, a plugin or mod of the platform; `getWaitingFor()` says which. | What it waits for is there: after a dependency starts, `enable`, `rescan` or `reload`. |
 | `DISABLED` | An administrator turned it off; it stays off across restarts. See [Selection file](../selection/index.md). | `enable` turns it on. |
 | `FAILED` | Its jar or descriptor could not be read, it does not fit the host's API, platform or offers, its dependencies form a cycle, or it failed to start. `getFailure()` says why. | `enable` or `reload`; `rescan` reads a jar again only when its descriptor could not be read. |
 

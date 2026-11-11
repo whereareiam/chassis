@@ -13,7 +13,7 @@ public enum ExtensionState {
 	 */
 	DISABLED,
 	/**
-	 * Waiting for a dependency or a plugin of the platform; it starts once what it waits for is there.
+	 * Waiting for a dependency or a peer of the platform; it starts once what it waits for is there.
 	 */
 	WAITING,
 	/**

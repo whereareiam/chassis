@@ -39,7 +39,7 @@ Not in the repository yet: platforms for Bukkit, Velocity and BungeeCord.
 ## How an extension moves through Chassis
 
 1. `ChassisHost.start()` reads the selection file and asks `ExtensionDiscovery` for every jar. Each becomes an entry: `DISABLED` when listed, `FAILED` when unreadable, undecided otherwise.
-2. `settle()` gives the undecided and waiting entries to `DependencyResolver` together with the running ones. The resolver fails what does not fit the host, the platform or the offers, or forms a cycle; it moves to waiting what lacks a plugin or a dependency, until nothing changes; it orders the rest depth first.
+2. `settle()` gives the undecided and waiting entries to `DependencyResolver` together with the running ones. The resolver fails what does not fit the host, the platform or the offers, or forms a cycle; it moves to waiting what lacks a peer or a dependency, until nothing changes; it orders the rest depth first.
 3. `settle()` starts the ordered entries one by one. Before each it checks again that every required dependency is enabled, because an earlier start in the same pass may have failed. It repeats until a pass starts nothing.
 4. Starting builds the `ExtensionClassLoader`, the `LoadedContext`, the host's context and the instance, then calls `enable`. Any failure closes the context and the loader before the entry becomes `FAILED`.
 5. Stopping calls `disable`, closes the `LoadedContext` (resources in reverse order, then `removeOwner`), and closes the loader, whatever `disable` threw. `stopDependents` stops the enabled extensions that depend on one, directly or not, the last started first.

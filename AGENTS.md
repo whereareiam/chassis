@@ -17,7 +17,7 @@ When changing behavior:
 ### Module Map
 
 - `chassis-api`
-  The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `ExtensionPreparation`, `Extensions`, `Services` with `ServiceKey` and `ServiceRegistration`, `Platform`, `ExtensionDescriptor`, `InstalledExtension`, `Version`, `VersionRange`, `ExtensionState`, events and exceptions.
+  The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `ExtensionPreparation`, `Extensions`, `Services` with `ServiceKey` and `ServiceRegistration`, `Platform` with `PlatformPeer`, `ExtensionDescriptor`, `InstalledExtension`, `Version`, `VersionRange`, `ExtensionState`, events and exceptions.
 - `chassis-common`
   The standard host. `ChassisHost` owns every installed extension and implements `Extensions`; `HostOptions` is what a host tells it; `SelectionFile` keeps turned-off ids. Packages: `discovery` (`ExtensionDiscovery`, `DescriptorReader`), `resolution` (`DependencyResolver`), `loading` (`ExportLayer`, `ExtensionClassLoader`), `lifecycle` (`LoadedContext`), `service` (`ServiceRegistry`).
 - `chassis-adapter-guice`
@@ -29,7 +29,7 @@ When changing behavior:
 - `chassis-adapter-commandant`
   `ExtensionCommands`: `/<root> <kind> list|info|enable|disable|reload|rescan` on Cloud, each with the permission `<root>.command.<kind>.<name>` the host checks and Commandant's definition id `<kind>-<name>`; each answer a translatable component under the host's key prefix with named arguments, worded by the host's translations. Cloud, Commandant's API and Adventure are `compileOnly`.
 - `chassis-platform/type/platform-neoforge` (project `:platform-neoforge`)
-  `NeoForgePlatform`: the name `neoforge`, the game's version and loaded mods for descriptors' `plugins`. NeoForge's loader is `compileOnly`.
+  `NeoForgePlatform`: the name `neoforge`, the game's version and loaded mods for descriptors' `peers`. NeoForge's loader is `compileOnly`.
 - `chassis-platform/type/platform-bukkit` (project `:platform-bukkit`)
   `BukkitPlatform`: the kind of server (`folia`, `paper`, `spigot` or `bukkit`), the game's version and enabled plugins. Spigot's API is `compileOnly`.
 - `chassis-platform/type/platform-velocity` (project `:platform-velocity`)
@@ -71,7 +71,7 @@ Not in the repository yet: a platform for BungeeCord. Do not document it as exis
 
 ### Class Loading And Cleanup
 
-- An extension's loader looks in the export layer first, then its own jar and the jars the host's preparation added, then the packages its dependencies export (`exports` in their descriptors). Keep that order: an extension must not replace a class the host exports, and must see of a dependency only what it exports.
+- An extension's loader looks in the export layer first, then the packages it names of the platform's peers, its plugins or mods (`peers[].packages`), then its own jar and the jars the host's preparation added, then the packages its dependencies export (`exports` in their descriptors). Keep that order: an extension must not replace a class the host or a named peer package provides, and must see of a dependency or plugin only what is named.
 - Everything an extension registers goes through its context, so the host can remove it. A new place that holds extension objects removes them in the stop path and gets a `LeakCheck` test.
 - A failed `enable` cleans up exactly like a stop.
 

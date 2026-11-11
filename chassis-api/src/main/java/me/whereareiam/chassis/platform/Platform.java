@@ -4,10 +4,12 @@ import me.whereareiam.chassis.model.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
+
 /**
  * The platform a host runs on, as Chassis needs to know it: its name and version for descriptors' {@code platforms},
- * and which of its plugins or mods are loaded, for descriptors' {@code plugins}. {@code chassis-platform} has one per
- * platform.
+ * and which peers it has loaded beside the host, such as plugins or mods, for descriptors' {@code peers}.
+ * {@code chassis-platform} has one per platform.
  */
 public interface Platform {
 	/**
@@ -29,10 +31,10 @@ public interface Platform {
 	}
 
 	/**
-	 * Tells whether a plugin or mod is loaded.
+	 * Finds a peer that is loaded now.
 	 *
 	 * @param id the id the platform knows it by
-	 * @return whether it is loaded now
+	 * @return the peer with its version and the loader of its classes, or empty when it is not loaded
 	 */
-	boolean hasPlugin(@NotNull String id);
+	@NotNull Optional<PlatformPeer> peer(@NotNull String id);
 }

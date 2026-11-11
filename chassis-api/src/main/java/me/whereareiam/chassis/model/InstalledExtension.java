@@ -28,7 +28,7 @@ public final class InstalledExtension {
 	private final @NotNull Path jar;
 	private final @NotNull ExtensionState state;
 	/**
-	 * Why the extension waits: one line per missing dependency, plugin or requirement. Empty unless it waits.
+	 * Why the extension waits: one line per missing dependency, peer or requirement. Empty unless it waits.
 	 */
 	@Builder.Default
 	private final @NotNull List<String> waitingFor = List.of();

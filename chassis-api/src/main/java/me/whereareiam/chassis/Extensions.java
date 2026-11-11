@@ -64,7 +64,7 @@ public interface Extensions {
 
 	/**
 	 * Looks at the host's folder again: installs jars added since, and starts what can start now, such as an extension
-	 * that waited for a plugin the platform has loaded since. Extensions that run stay as they are.
+	 * that waited for a peer the platform has loaded since. Extensions that run stay as they are.
 	 *
 	 * @return every installed extension afterwards
 	 */

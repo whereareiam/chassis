@@ -25,7 +25,12 @@ platforms:
   - name: neoforge
   - name: paper
     version: ">=1.21 <1.22 || ~26.1"
-plugins: [luckperms]
+peers:
+  - id: luckperms
+    version: ^5
+    packages: [net.luckperms.api]
+  - id: placeholderapi
+    optional: true
 ```
 
 Only `id`, `version` and `main` are required.
@@ -45,7 +50,7 @@ Only `id`, `version` and `main` are required.
 | `dependencies` | no | Other extensions of the same host, each with `id`, an optional `version` range (default any) and `optional` (default `false`). |
 | `exports` | no | The packages of the jar that the extensions depending on it see, each with its subpackages. Defaults to none: dependents then see no class of the extension. See [What extensions see](../class-loading/index.md#one-extensions-class-loader). |
 | `platforms` | no | The platforms the extension runs on, each with `name`, such as `neoforge`, compared in lowercase with `Platform.name()`, and an optional `version` range of the platform's versions (default any), compared with `Platform.version()`. Empty means every platform. See [Platforms](../platforms/index.md#choosing-platforms-and-versions). |
-| `plugins` | no | Plugins or mods of the platform the extension needs, by the ids the platform knows them by. |
+| `peers` | no | Peers: what the platform loads beside the host, such as plugins or mods, that the extension needs or can use, each with `id`, the id the platform knows it by, an optional `version` range (default any), `optional` (default `false`) and `packages`, the packages of the peer the extension uses (default none). See [What extensions see](../class-loading/index.md#packages-of-peers). |
 
 In code the descriptor is an `ExtensionDescriptor`: `context.descriptor()` inside an extension, `InstalledExtension.getDescriptor()` from the [control API](../control/index.md).
 
@@ -59,7 +64,8 @@ Each check leads to a state. An extension that does not fit the host fails; an e
 | `platforms` is empty or names the platform | `FAILED` | `It runs on paper, not on neoforge` |
 | the platform's entry accepts the platform's version | `FAILED` | `It runs on paper ~26.1, not on paper 1.21.4` |
 | every `requires` entry is offered in an accepted version | `FAILED` | `It requires 'persistence', which the host does not offer` |
-| every plugin is loaded | `WAITING` | `the plugin 'luckperms', which is not loaded` |
+| every peer that is not optional is loaded | `WAITING` | `the peer 'luckperms', which is not loaded` |
+| every loaded peer is in an accepted version | `WAITING` | `the peer 'luckperms' ^5, and 4.4.1 is loaded`, `the peer 'luckperms' ^5, whose version 'b42' is no version` |
 | every required dependency is installed in an accepted version and enabled | `WAITING` | `'storage' ^2 (not installed)`, `'storage' ^2, and 1.4.0 is installed` |
 | the dependencies form no cycle | `FAILED` for every member | `Its dependencies form a cycle: left -> right -> left` |
 
@@ -67,11 +73,13 @@ A failed extension's reason is `getFailure().getMessage()`; a waiting extension 
 
 ### Optional dependencies
 
-An optional dependency changes only the order. When it is installed and can start, it starts first and the extension's class loader sees the packages it exports. When it is missing, turned off or fails, the extension starts without it. A version range on an optional dependency still has to accept the installed version, or the extension waits.
+An optional dependency changes only the order. When it is installed and can start, it starts first and the extension's class loader sees the packages it exports. When it is missing, turned off or fails, the extension starts without it. A version range on an optional dependency still has to accept the installed version, or the extension waits. An optional peer works the same way: when it is loaded, its version must be accepted and the extension sees the packages it names of it.
 
 ## Versions
 
 A version is `major.minor.patch` with an optional pre-release after `-` and build metadata after `+`, as semantic versioning writes them. Missing parts read as `0` (`2` is `2.0.0`), and a leading `v` is allowed. A pre-release orders before its release; build metadata is not compared.
+
+A peer's version is the one it states, read as above; a peer whose version is not such a version satisfies only an entry without a range.
 
 Ranges are written as npm and Cargo write them:
 
