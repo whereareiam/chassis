@@ -23,6 +23,8 @@ annotations = "26.0.1"
 # platform api
 neoforge = "21.1.252"
 fancymodloader = "4.0.44"
+spigot = "1.21.11-R0.1-SNAPSHOT"
+velocity = "3.4.0"
 
 # testing
 junit = "6.0.1"
@@ -47,6 +49,8 @@ annotations = { group = "org.jetbrains", name = "annotations", version.ref = "an
 
 # platform api
 fancymodloader = { group = "net.neoforged.fancymodloader", name = "loader", version.ref = "fancymodloader" }
+spigot = { group = "org.spigotmc", name = "spigot-api", version.ref = "spigot" }
+velocity = { group = "com.velocitypowered", name = "velocity-api", version.ref = "velocity" }
 
 # testing
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
