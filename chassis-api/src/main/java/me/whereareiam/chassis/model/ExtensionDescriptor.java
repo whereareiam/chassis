@@ -30,7 +30,10 @@ import java.util.Map;
  *   - id: other
  *     version: ^2
  *     optional: true
- * platforms: [neoforge]
+ * platforms:
+ *   - name: neoforge
+ *   - name: paper
+ *     version: ">=1.21 <1.22 || ~26.1"
  * plugins: [luckperms]
  * }</pre>
  */
@@ -72,15 +75,44 @@ public final class ExtensionDescriptor {
 	@Singular
 	private final @NotNull List<Dependency> dependencies;
 	/**
-	 * The platforms it runs on, such as {@code neoforge}; empty means every platform the host runs on.
+	 * The platforms it runs on, such as {@code neoforge}, each with the versions of it accepted; empty means every
+	 * platform the host runs on.
 	 */
 	@Singular
-	private final @NotNull List<String> platforms;
+	private final @NotNull List<SupportedPlatform> platforms;
 	/**
 	 * Plugins or mods of the platform it needs, by the ids the platform knows them by. It waits until each is loaded.
 	 */
 	@Singular
 	private final @NotNull List<String> plugins;
+
+	/**
+	 * A platform an extension runs on, with the versions of it accepted.
+	 */
+	@Getter
+	@Builder
+	@EqualsAndHashCode
+	public static final class SupportedPlatform {
+		/**
+		 * The platform's name, lowercase, as {@link me.whereareiam.chassis.platform.Platform#name()} gives it.
+		 */
+		private final @NotNull String name;
+		/**
+		 * The versions of the platform accepted, compared with {@link me.whereareiam.chassis.platform.Platform#version()}.
+		 */
+		@Builder.Default
+		private final @NotNull VersionRange version = VersionRange.ANY;
+
+		/**
+		 * Returns the platform as a descriptor names it, such as {@code paper ~26.1}.
+		 *
+		 * @return the name, followed by the range unless it accepts any version
+		 */
+		@Override
+		public String toString() {
+			return version.equals(VersionRange.ANY) ? name : name + " " + version;
+		}
+	}
 
 	/**
 	 * Another extension an extension needs, or can use.
