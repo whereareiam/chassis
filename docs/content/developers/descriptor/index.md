@@ -21,7 +21,10 @@ dependencies:
   - id: metrics
     optional: true
 exports: [com.example.monitoring.api]
-platforms: [neoforge]
+platforms:
+  - name: neoforge
+  - name: paper
+    version: ">=1.21 <1.22 || ~26.1"
 plugins: [luckperms]
 ```
 
@@ -41,7 +44,7 @@ Only `id`, `version` and `main` are required.
 | `requires` | no | What the extension needs the host to offer, by the names the host gives them, each with a version range, checked against `HostOptions.offer(...)`. |
 | `dependencies` | no | Other extensions of the same host, each with `id`, an optional `version` range (default any) and `optional` (default `false`). |
 | `exports` | no | The packages of the jar that the extensions depending on it see, each with its subpackages. Defaults to none: dependents then see no class of the extension. See [What extensions see](../class-loading/index.md#one-extensions-class-loader). |
-| `platforms` | no | The platforms the extension runs on, such as `neoforge`, compared in lowercase with `Platform.name()`. Empty means every platform. |
+| `platforms` | no | The platforms the extension runs on, each with `name`, such as `neoforge`, compared in lowercase with `Platform.name()`, and an optional `version` range of the platform's versions (default any), compared with `Platform.version()`. Empty means every platform. See [Platforms](../platforms/index.md#choosing-platforms-and-versions). |
 | `plugins` | no | Plugins or mods of the platform the extension needs, by the ids the platform knows them by. |
 
 In code the descriptor is an `ExtensionDescriptor`: `context.descriptor()` inside an extension, `InstalledExtension.getDescriptor()` from the [control API](../control/index.md).
@@ -54,6 +57,7 @@ Each check leads to a state. An extension that does not fit the host fails; an e
 | --- | --- | --- |
 | `host` accepts the host's API version | `FAILED` | `It is built for the host's API ^2, and the host's API is 1.2.0` |
 | `platforms` is empty or names the platform | `FAILED` | `It runs on paper, not on neoforge` |
+| the platform's entry accepts the platform's version | `FAILED` | `It runs on paper ~26.1, not on paper 1.21.4` |
 | every `requires` entry is offered in an accepted version | `FAILED` | `It requires 'persistence', which the host does not offer` |
 | every plugin is loaded | `WAITING` | `the plugin 'luckperms', which is not loaded` |
 | every required dependency is installed in an accepted version and enabled | `WAITING` | `'storage' ^2 (not installed)`, `'storage' ^2, and 1.4.0 is installed` |
@@ -79,8 +83,9 @@ Ranges are written as npm and Cargo write them:
 | `~1.2` | `1.2.0` up to, not including, `1.3.0` |
 | `>=1.0`, `>1.0`, `<2`, `<=2` | one bound |
 | `>=1.4 <3` | several bounds separated by spaces, all of which must hold |
+| `>=1.16 <1.22 \|\| ~26.1` | alternatives separated by `\|\|`, one of which must hold |
 
-A range accepts a pre-release only when one of its bounds names a pre-release of the same version: `^1` does not accept `1.5.0-beta.1`, `>=2.0.0-beta.1` accepts `2.0.0-beta.2`.
+A range accepts a pre-release only when a bound of the alternative that accepts it names a pre-release of the same version: `^1` does not accept `1.5.0-beta.1`, `>=2.0.0-beta.1` accepts `2.0.0-beta.2`.
 
 YAML reads a value that starts with `*` as an alias and one that starts with `>` as folded text, so quote such ranges:
 

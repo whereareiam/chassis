@@ -16,24 +16,27 @@ import java.util.List;
  *     minor);</li>
  *     <li>{@code ~1.2} — {@code 1.2.0} up to, not including, {@code 1.3.0};</li>
  *     <li>{@code >=1.0}, {@code >1.0}, {@code <2}, {@code <=2} — a bound; several separated by spaces must all hold,
- *     such as {@code >=1.4 <3}.</li>
+ *     such as {@code >=1.4 <3};</li>
+ *     <li>{@code ||} — alternatives, of which one must hold, such as {@code >=1.16 <1.22 || ~26.1}.</li>
  * </ul>
  *
- * <p>A pre-release is accepted only when the range names it, so {@code ^1} does not accept {@code 2.0.0-beta.1}.</p>
+ * <p>A pre-release is accepted only when the alternative that accepts it names a pre-release of the same version, so
+ * {@code ^1} does not accept {@code 2.0.0-beta.1}.</p>
  */
 @EqualsAndHashCode
 public final class VersionRange {
 	/**
 	 * The range that accepts every version.
 	 */
-	public static final VersionRange ANY = new VersionRange("*", List.of());
+	public static final VersionRange ANY = new VersionRange("*", List.of(List.of()));
 
 	private final String text;
-	private final List<Bound> bounds;
+	// Alternatives, of which one must hold; each a list of bounds that must all hold.
+	private final List<List<Bound>> alternatives;
 
-	private VersionRange(String text, List<Bound> bounds) {
+	private VersionRange(String text, List<List<Bound>> alternatives) {
 		this.text = text;
-		this.bounds = bounds;
+		this.alternatives = alternatives;
 	}
 
 	/**
@@ -47,10 +50,18 @@ public final class VersionRange {
 		String trimmed = text.trim();
 		if (trimmed.isEmpty() || trimmed.equals("*")) return ANY;
 
-		List<Bound> bounds = new ArrayList<>();
-		for (String part : trimmed.split("\\s+")) bounds.addAll(bounds(part));
+		List<List<Bound>> alternatives = new ArrayList<>();
+		for (String alternative : trimmed.split("\\|\\|", -1)) {
+			String bounded = alternative.trim();
+			if (bounded.isEmpty()) throw new IllegalArgumentException("'" + trimmed + "' has an empty alternative");
 
-		return new VersionRange(trimmed, List.copyOf(bounds));
+			List<Bound> bounds = new ArrayList<>();
+			if (!bounded.equals("*"))
+				for (String part : bounded.split("\\s+")) bounds.addAll(bounds(part));
+			alternatives.add(List.copyOf(bounds));
+		}
+
+		return new VersionRange(trimmed, List.copyOf(alternatives));
 	}
 
 	private static List<Bound> bounds(String part) {
@@ -79,9 +90,16 @@ public final class VersionRange {
 	 * Tells whether the range accepts a version.
 	 *
 	 * @param version the version
-	 * @return whether every bound of the range holds for it
+	 * @return whether every bound of one of the range's alternatives holds for it
 	 */
 	public boolean accepts(@NotNull Version version) {
+		for (List<Bound> bounds : alternatives)
+			if (accepts(bounds, version)) return true;
+
+		return false;
+	}
+
+	private static boolean accepts(List<Bound> bounds, Version version) {
 		if (version.isPreRelease() && bounds.stream().noneMatch(bound -> bound.version.isPreRelease()
 				&& bound.version.getMajor() == version.getMajor()
 				&& bound.version.getMinor() == version.getMinor()

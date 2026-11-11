@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -52,7 +53,7 @@ public final class DescriptorReader {
 				.authors(file.authors == null ? List.of() : file.authors)
 				.host(range(id, "host", file.host))
 				.exports(packages(id, file.exports))
-				.platforms(lower(file.platforms))
+				.platforms(platforms(id, file.platforms))
 				.plugins(file.plugins == null ? List.of() : file.plugins);
 		if (file.requires != null)
 			file.requires.forEach((name, range) -> descriptor.require(name, rangeUnchecked(id, "requires." + name, range)));
@@ -115,12 +116,19 @@ public final class DescriptorReader {
 		return packages;
 	}
 
-	private static List<String> lower(@Nullable List<String> values) {
-		if (values == null) return List.of();
-		List<String> lowered = new ArrayList<>();
-		for (String value : values) lowered.add(value.trim().toLowerCase(java.util.Locale.ROOT));
+	private static List<ExtensionDescriptor.SupportedPlatform> platforms(String id, @Nullable List<PlatformEntry> entries) throws DescriptorException {
+		if (entries == null) return List.of();
 
-		return lowered;
+		List<ExtensionDescriptor.SupportedPlatform> platforms = new ArrayList<>();
+		for (PlatformEntry entry : entries) {
+			String name = required(id, "platforms[].name", entry.name).toLowerCase(Locale.ROOT);
+			platforms.add(ExtensionDescriptor.SupportedPlatform.builder()
+					.name(name)
+					.version(range(id, "platforms." + name + ".version", entry.version))
+					.build());
+		}
+
+		return platforms;
 	}
 
 	// The file as YAML gives it; read field by field, so no setters.
@@ -136,8 +144,14 @@ public final class DescriptorReader {
 		private Map<String, String> requires = new LinkedHashMap<>();
 		private List<DependencyEntry> dependencies;
 		private List<String> exports;
-		private List<String> platforms;
+		private List<PlatformEntry> platforms;
 		private List<String> plugins;
+	}
+
+	@SuppressWarnings("unused")
+	private static final class PlatformEntry {
+		private String name;
+		private String version;
 	}
 
 	@SuppressWarnings("unused")
