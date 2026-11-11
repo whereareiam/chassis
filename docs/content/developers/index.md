@@ -16,7 +16,9 @@ Chassis is published to the [public Maven registry](https://registry.whereareiam
 | `chassis-api` | extensions, through the host's API | `Extension`, `ExtensionContext`, `Services`, `Extensions`, descriptors and states |
 | `chassis-common` | the host, shipped inside it | `ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile` |
 | `chassis-adapter-guice` | a host that makes extensions through Guice | `GuiceExtensionFactory`; see [Guice](./guice/index.md) |
-| `platform-neoforge` | a host on NeoForge | `NeoForgePlatform`; see [NeoForge](./neoforge/index.md) |
+| `platform-neoforge` | a host on NeoForge | `NeoForgePlatform`; see [Platforms](./platforms/index.md#neoforge) |
+| `platform-bukkit` | a host on Bukkit, Spigot, Paper or Folia | `BukkitPlatform`; see [Platforms](./platforms/index.md#bukkit-spigot-paper-and-folia) |
+| `platform-velocity` | a host on Velocity | `VelocityPlatform`; see [Platforms](./platforms/index.md#velocity) |
 | `chassis-testing` | the host's tests | `ExtensionJar`, `LeakCheck`; see [Testing a host](./testing/index.md) |
 
 A host ships `chassis-common` (which brings `chassis-api`) inside its own jar:
@@ -115,7 +117,7 @@ public final class ExampleHost {
 | `selectionFile` | The file that keeps which extensions an administrator turned off. See [Selection file](./selection/index.md). |
 | `hostVersion` | The version of the host's API, which a descriptor's `host` range must accept. |
 | `offer(name, version)` | Something the host offers for descriptors' `requires`; call it once per offer. |
-| `platform` | The platform the host runs on. See [NeoForge](./neoforge/index.md) and [Other platforms](./neoforge/index.md#other-platforms). |
+| `platform` | The platform the host runs on. See [Platforms](./platforms/index.md). |
 | `exportLayer` | The packages extensions see of the host. See [What extensions see](./class-loading/index.md). |
 | `loggers` | Gives the `System.Logger` of a name: the host's kind word or an extension's id. Defaults to `System::getLogger`. |
 

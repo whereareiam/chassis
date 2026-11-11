@@ -16,7 +16,7 @@
     "---Adapters and Platforms---",
     "guice",
     "commands",
-    "neoforge",
+    "platforms",
     "---Testing---",
     "testing"
   ]
