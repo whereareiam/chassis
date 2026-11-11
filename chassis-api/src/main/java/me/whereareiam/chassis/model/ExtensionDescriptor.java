@@ -35,7 +35,12 @@ import java.util.Map;
  *   - name: neoforge
  *   - name: paper
  *     version: ">=1.21 <1.22 || ~26.1"
- * plugins: [luckperms]
+ * peers:
+ *   - id: luckperms
+ *     version: ^5
+ *     packages: [net.luckperms.api]
+ *   - id: placeholderapi
+ *     optional: true
  * }</pre>
  */
 @Getter
@@ -89,10 +94,11 @@ public final class ExtensionDescriptor {
 	@Singular
 	private final @NotNull List<SupportedPlatform> platforms;
 	/**
-	 * Plugins or mods of the platform it needs, by the ids the platform knows them by. It waits until each is loaded.
+	 * Peers of the platform it needs, or can use when they are there. It waits until each it needs is loaded,
+	 * and sees the packages it names of each that is loaded.
 	 */
 	@Singular
-	private final @NotNull List<String> plugins;
+	private final @NotNull List<PeerDependency> peers;
 
 	/**
 	 * A platform an extension runs on, with the versions of it accepted.
@@ -120,6 +126,35 @@ public final class ExtensionDescriptor {
 		public String toString() {
 			return version.equals(VersionRange.ANY) ? name : name + " " + version;
 		}
+	}
+
+	/**
+	 * A peer of the platform an extension needs, or can use.
+	 */
+	@Getter
+	@Builder
+	@ToString
+	@EqualsAndHashCode
+	public static final class PeerDependency {
+		/**
+		 * The id the platform knows it by.
+		 */
+		private final @NotNull String id;
+		/**
+		 * The versions of it accepted, compared with the version the peer states.
+		 */
+		@Builder.Default
+		private final @NotNull VersionRange version = VersionRange.ANY;
+		/**
+		 * Whether the extension also starts without it. When it is loaded, the extension still sees its packages.
+		 */
+		private final boolean optional;
+		/**
+		 * The packages of the peer the extension loads from the peer's own class loader, each with its
+		 * subpackages, such as its API; empty when the extension only waits for it.
+		 */
+		@Singular("packageName")
+		private final @NotNull List<String> packages;
 	}
 
 	/**

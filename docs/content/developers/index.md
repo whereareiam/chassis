@@ -179,7 +179,7 @@ modules.find("greeting").ifPresent(extension -> {
 | `FAILED` with `... has no example-module.yml` | The descriptor is not at the path `descriptorFile` names. |
 | `FAILED` with `... is no com.example.host.api.ExampleModule` | The main class does not implement the host's kind, or implements a copy of it from the extension's own jar because the host's API package is missing from the export layer. |
 | `FAILED` with a `NoClassDefFoundError` | The extension uses a class the host does not export and its jar does not contain. See [What extensions see](./class-loading/index.md). |
-| `WAITING` | `getWaitingFor()` names each dependency or plugin it waits for. See [Lifecycle and states](./lifecycle/index.md). |
+| `WAITING` | `getWaitingFor()` names each dependency or peer it waits for. See [Lifecycle and states](./lifecycle/index.md). |
 
 A failure to start is also logged with its stack trace as `The module greeting failed to start`.
 

@@ -3,15 +3,18 @@ package me.whereareiam.chassis.platform.velocity;
 import com.velocitypowered.api.proxy.ProxyServer;
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.platform.Platform;
+import me.whereareiam.chassis.platform.PlatformPeer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Velocity as Chassis sees it: named {@code velocity}, its version is the proxy's own, such as {@code 3.4.0}, and a
- * descriptor's {@code plugins} are plugin ids. It runs on Velocity 3 and 4.
+ * descriptor's {@code peers} are plugin ids, each with the version it states and the class loader of its instance. It
+ * runs on Velocity 3 and 4.
  *
  * <pre>{@code
  * new VelocityPlatform(proxyServer)
@@ -44,8 +47,12 @@ public final class VelocityPlatform implements Platform {
 	}
 
 	@Override
-	public boolean hasPlugin(@NotNull String id) {
-		return proxy.getPluginManager().isLoaded(id);
+	public @NotNull Optional<PlatformPeer> peer(@NotNull String id) {
+		return proxy.getPluginManager().getPlugin(id).map(plugin -> PlatformPeer.builder()
+				.id(plugin.getDescription().getId())
+				.version(plugin.getDescription().getVersion().orElse(null))
+				.classLoader(plugin.getInstance().map(instance -> instance.getClass().getClassLoader()).orElse(null))
+				.build());
 	}
 
 	/**

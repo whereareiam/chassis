@@ -2,12 +2,14 @@ package me.whereareiam.chassis.platform.bukkit;
 
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.platform.Platform;
+import me.whereareiam.chassis.platform.PlatformPeer;
 import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,7 +17,8 @@ import java.util.regex.Pattern;
  * A Bukkit server as Chassis sees it. Its name is the kind of server, the most specific of {@code folia},
  * {@code paper}, {@code spigot} and {@code bukkit}, so a descriptor that lists {@code paper} does not run on Folia
  * until it lists {@code folia} too. Its version is the game's, such as {@code 1.21.4}. A descriptor's
- * {@code plugins} are plugin names, and a plugin counts once the server has enabled it.
+ * {@code peers} are plugin names, and a plugin counts once the server has enabled it; its version is the one its
+ * {@code plugin.yml} states, and its classes are those of its own class loader.
  *
  * <pre>{@code
  * new BukkitPlatform(getServer())
@@ -61,10 +64,15 @@ public final class BukkitPlatform implements Platform {
 	}
 
 	@Override
-	public boolean hasPlugin(@NotNull String id) {
+	public @NotNull Optional<PlatformPeer> peer(@NotNull String id) {
 		Plugin plugin = server.getPluginManager().getPlugin(id);
+		if (plugin == null || !plugin.isEnabled()) return Optional.empty();
 
-		return plugin != null && plugin.isEnabled();
+		return Optional.of(PlatformPeer.builder()
+				.id(plugin.getName())
+				.version(plugin.getDescription().getVersion())
+				.classLoader(plugin.getClass().getClassLoader())
+				.build());
 	}
 
 	/**

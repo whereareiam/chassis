@@ -21,7 +21,7 @@ Changes are made one at a time, on the caller's thread. None of them touches the
 | `getDescriptor()` | The descriptor, or `null` when it could not be read. |
 | `getJar()` | The path of the jar. |
 | `getState()` | `ENABLED`, `DISABLED`, `WAITING` or `FAILED`; see [Lifecycle and states](../lifecycle/index.md). |
-| `getWaitingFor()` | One line per missing dependency or plugin; empty unless it waits. |
+| `getWaitingFor()` | One line per missing dependency or peer; empty unless it waits. |
 | `getFailure()` | Why it failed, or `null` unless it failed. |
 
 A listing command could print:
@@ -57,9 +57,9 @@ Each method takes an id and returns the extension afterwards. It throws `Extensi
 - the jar is gone: the extension is no longer installed;
 - the jar now holds another id: the old extension is gone, and the jar is installed and started under the new id.
 
-### Waiting for a plugin
+### Waiting for a peer
 
-An extension that names a plugin in its descriptor waits until the platform has loaded it. On platforms that load plugins while running, call `rescan()` after a plugin loads, and the waiting extensions start. On NeoForge every mod is loaded before the server starts, so an extension never waits for a mod that comes later.
+An extension that names a peer, a plugin or mod of the platform, in its descriptor waits until the platform has loaded it. On platforms that load plugins while running, call `rescan()` after a plugin loads, and the waiting extensions start. On NeoForge every mod is loaded before the server starts, so an extension never waits for a mod that comes later.
 
 ## Following changes
 

@@ -54,7 +54,7 @@ public final class DescriptorReader {
 				.host(range(id, "host", file.host))
 				.exports(packages(id, file.exports))
 				.platforms(platforms(id, file.platforms))
-				.plugins(file.plugins == null ? List.of() : file.plugins);
+				.peers(peers(id, file.peers));
 		if (file.requires != null)
 			file.requires.forEach((name, range) -> descriptor.require(name, rangeUnchecked(id, "requires." + name, range)));
 		for (DependencyEntry dependency : file.dependencies == null ? List.<DependencyEntry>of() : file.dependencies)
@@ -116,6 +116,23 @@ public final class DescriptorReader {
 		return packages;
 	}
 
+	private static List<ExtensionDescriptor.PeerDependency> peers(String id, @Nullable List<PeerEntry> entries) throws DescriptorException {
+		if (entries == null) return List.of();
+
+		List<ExtensionDescriptor.PeerDependency> peers = new ArrayList<>();
+		for (PeerEntry entry : entries) {
+			String peer = required(id, "peers[].id", entry.id);
+			peers.add(ExtensionDescriptor.PeerDependency.builder()
+					.id(peer)
+					.version(range(id, "peers." + peer + ".version", entry.version))
+					.optional(entry.optional)
+					.packages(packages(id, entry.packages))
+					.build());
+		}
+
+		return peers;
+	}
+
 	private static List<ExtensionDescriptor.SupportedPlatform> platforms(String id, @Nullable List<PlatformEntry> entries) throws DescriptorException {
 		if (entries == null) return List.of();
 
@@ -145,13 +162,21 @@ public final class DescriptorReader {
 		private List<DependencyEntry> dependencies;
 		private List<String> exports;
 		private List<PlatformEntry> platforms;
-		private List<String> plugins;
+		private List<PeerEntry> peers;
 	}
 
 	@SuppressWarnings("unused")
 	private static final class PlatformEntry {
 		private String name;
 		private String version;
+	}
+
+	@SuppressWarnings("unused")
+	private static final class PeerEntry {
+		private String id;
+		private String version;
+		private boolean optional;
+		private List<String> packages;
 	}
 
 	@SuppressWarnings("unused")

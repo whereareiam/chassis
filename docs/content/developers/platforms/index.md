@@ -3,13 +3,13 @@ title: Platforms
 description: Run a host on NeoForge, on a Bukkit server or on Velocity, and describe any other platform to Chassis.
 ---
 
-Chassis asks the platform three things: its name and its version, for descriptors' `platforms`, and whether a plugin or mod is loaded, for descriptors' `plugins`. A host passes that as a `Platform` in `HostOptions`.
+Chassis asks the platform three things: its name and its version, for descriptors' `platforms`, and which peers, its plugins or mods, are loaded, with their versions and class loaders, for descriptors' `peers`. A host passes that as a `Platform` in `HostOptions`.
 
-| Artifact | Platform | Name | Version | A descriptor's `plugins` are |
-| --- | --- | --- | --- | --- |
-| `platform-neoforge` | NeoForge | `neoforge` | the game's, such as `1.21.1` | mod ids |
-| `platform-bukkit` | Bukkit, Spigot, Paper and Folia | `bukkit`, `spigot`, `paper` or `folia` | the game's, such as `1.21.4` | plugin names |
-| `platform-velocity` | Velocity 3 and 4 | `velocity` | the proxy's, such as `3.4.0` | plugin ids |
+| Artifact | Platform | Name | Version | A descriptor's `peers` are | Their classes |
+| --- | --- | --- | --- | --- | --- |
+| `platform-neoforge` | NeoForge | `neoforge` | the game's, such as `1.21.1` | mod ids | in the host's loader; [exported](#exporting-another-mods-api) |
+| `platform-bukkit` | Bukkit, Spigot, Paper and Folia | `bukkit`, `spigot`, `paper` or `folia` | the game's, such as `1.21.4` | plugin names | the packages an extension names, from the plugin's loader |
+| `platform-velocity` | Velocity 3 and 4 | `velocity` | the proxy's, such as `3.4.0` | plugin ids | the packages an extension names, from the plugin's loader |
 
 Each platform's API is `compileOnly`: the host runs on the platform, which provides it.
 
@@ -49,7 +49,7 @@ HostOptions options = HostOptions.builder()
 ```
 
 - Its name is `neoforge` and its version is the game's.
-- A descriptor's `plugins` are mod ids: `plugins: [luckperms]` waits until NeoForge reports the mod `luckperms` as loaded.
+- A descriptor's `peers` are mod ids: `{id: luckperms}` waits until NeoForge reports the mod `luckperms` as loaded, and a range is compared with the mod's version.
 - NeoForge loads every mod before the server starts, so an extension never waits for a mod that comes later. One that waits for a mod which is not installed keeps waiting until the server restarts with the mod.
 
 ### Exporting another mod's API
@@ -64,7 +64,7 @@ new ExportLayer(ExampleMod.class.getClassLoader(), List.of(
 ));
 ```
 
-An extension that uses such an API should name the mod in `plugins`, so it waits instead of failing when the mod is missing.
+An extension that uses such an API should name the mod in `peers`, so it waits instead of failing when the mod is missing. A mod brings no class loader of its own, so `packages` in its entry adds no classes.
 
 ## Bukkit, Spigot, Paper and Folia
 
@@ -87,7 +87,8 @@ HostOptions options = HostOptions.builder()
 
 - Its name is the kind of server, the most specific of `folia`, `paper`, `spigot` and `bukkit`: a fork of Paper is `paper`, and Folia is only `folia`.
 - Its version is the game's, read from the server's Bukkit version: `1.21.4` from `1.21.4-R0.1-SNAPSHOT`.
-- A descriptor's `plugins` are plugin names, as the server knows them: `plugins: [LuckPerms]` waits until the server has enabled LuckPerms.
+- A descriptor's `peers` are plugin names, as the server knows them: `{id: LuckPerms, version: ^5}` waits until the server has enabled LuckPerms 5, whose version is the one its `plugin.yml` states.
+- An extension sees the [packages it names](../class-loading/index.md#packages-of-peers) of a plugin through the plugin's own class loader; the host needs no `depend` on it.
 
 A plugin the server enables after the host waits like a mod that is missing. Call `rescan()` when the server enables a plugin, and the extensions that waited for it start:
 
@@ -118,7 +119,8 @@ HostOptions options = HostOptions.builder()
 ```
 
 - Its name is `velocity`, and its version is the proxy's release: `3.4.0` from `3.4.0-SNAPSHOT (git-1a2b3c4d)`.
-- A descriptor's `plugins` are plugin ids: `plugins: [luckperms]` waits until Velocity has loaded the plugin `luckperms`.
+- A descriptor's `peers` are plugin ids: `{id: luckperms}` waits until Velocity has loaded the plugin `luckperms`, whose version is the one it states.
+- An extension sees the [packages it names](../class-loading/index.md#packages-of-peers) of a plugin through the class loader of the plugin's instance.
 - Velocity loads every plugin before the proxy starts, so an extension never waits for a plugin that comes later.
 
 It is built against Velocity 3's API and runs on Velocity 3 and 4.
@@ -130,7 +132,10 @@ A host on another platform, or a host that is no plugin at all, implements `Plat
 ```java
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.platform.Platform;
+import me.whereareiam.chassis.platform.PlatformPeer;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Optional;
 
 public final class StandalonePlatform implements Platform {
     @Override
@@ -144,12 +149,12 @@ public final class StandalonePlatform implements Platform {
     }
 
     @Override
-    public boolean hasPlugin(@NotNull String id) {
-        return false;
+    public @NotNull Optional<PlatformPeer> peer(@NotNull String id) {
+        return Optional.empty();
     }
 }
 ```
 
 - `name()` returns the platform's name in lowercase.
 - `version()` returns the platform's version. It may return `null` when the platform has none; only descriptor entries without a range then accept it. Without an override it returns `null`.
-- `hasPlugin(id)` tells whether a plugin is loaded now. Chassis asks it whenever it decides which extensions can start, so an extension that waited for a plugin starts on the next `rescan()` after the platform loaded it.
+- `peer(id)` returns a peer that is loaded now, such as a plugin or mod, as a `PlatformPeer` with its id, the version it states and the loader of its classes, or empty. Chassis asks it whenever it decides which extensions can start, so an extension that waited for a peer starts on the next `rescan()` after the platform loaded it. A peer whose classes are in the host's own loader has no class loader of its own: leave it `null`.

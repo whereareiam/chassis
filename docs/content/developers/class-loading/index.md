@@ -33,10 +33,11 @@ Leave everything else out. A library the host uses internally stays invisible to
 An extension's loader looks for a class in this order:
 
 1. the export layer: the JDK and the exported packages;
-2. the extension's own jar, then the jars a preparation added;
-3. the packages the extensions it depends on export, and those that their own dependencies export in turn.
+2. the [packages it names of the platform's peers](#packages-of-peers), from each peer's own class loader;
+3. the extension's own jar, then the jars a preparation added;
+4. the packages the extensions it depends on export, and those that their own dependencies export in turn.
 
-The third step covers every dependency that is enabled when the extension starts, optional dependencies included. A dependency names the packages its dependents see under `exports` in its [descriptor](../descriptor/index.md), each with its subpackages:
+The fourth step covers every dependency that is enabled when the extension starts, optional dependencies included. A dependency names the packages its dependents see under `exports` in its [descriptor](../descriptor/index.md), each with its subpackages:
 
 ```yaml
 id: greeting
@@ -76,6 +77,28 @@ HostOptions options = HostOptions.builder()
 ```
 
 A jar added this way comes after the extension's own jar, and the export layer still comes first, so it cannot replace a class the host exports. It stays the extension's own: the extensions that depend on it never see its classes. Chassis closes what the preparation returned when the extension stops, after what the extension handed to `onClose` and before the loader, and also when the extension fails to start. A preparation that throws makes the extension `FAILED` with that error.
+
+## Packages of peers
+
+A peer is what the platform loads beside the host, such as a Bukkit or Velocity plugin or a NeoForge mod. On platforms where each peer has a class loader of its own, such as Bukkit and Velocity, an extension uses a peer's API by naming its packages under `packages` in the peer's entry, each with its subpackages:
+
+```yaml
+peers:
+  - id: LuckPerms
+    version: ^5
+    packages: [net.luckperms.api]
+```
+
+```java
+// In the extension, with LuckPerms's API on its compile class path:
+LuckPerms luckPerms = LuckPermsProvider.get();
+```
+
+- Those packages come from the peer's own class loader whenever the peer is loaded, optional peers included, and before the extension's own jar: the extension uses the very classes the peer uses, so objects pass between them, even when it bundles a copy of the API.
+- Nothing else of the peer is visible: not its other packages and not the libraries it shades, so an extension never binds to a peer's internals by accident.
+- An entry without `packages` only makes the extension wait for the peer.
+
+The host needs no dependency on the peer. On NeoForge every mod shares the host's loader, so there a host [exports a mod's API](../platforms/index.md#exporting-another-mods-api) instead.
 
 ## Types both sides see
 

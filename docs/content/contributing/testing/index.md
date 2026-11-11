@@ -26,7 +26,7 @@ Extend the closest existing test instead of starting a parallel style.
 - The kind of extension the tests load is a test interface in an exported package: `TestModule` in `me.whereareiam.chassis.common`, `GuiceModule` in `me.whereareiam.chassis.adapter.guice`. The export layer exports `me.whereareiam.chassis` from the test's class loader.
 - The extensions themselves live in `org.example.<name>` under the test sources, outside every exported package, so their classes come from the written jar. `org.example.greeting` registers a service and holds a class, `Shared`, that `org.example.dependent` uses through its dependency; `org.example.failing` throws from `enable`.
 - Extensions report back through system properties, which the test clears before each run, and through services of a type the host exports, such as `Greeting`.
-- The test's `Platform` answers `hasPlugin` from a set the test fills, to make an extension wait for a plugin and then start on `rescan()`.
+- The test's `Platform` answers `peer(id)` from a map the test fills, to make an extension wait for a peer and then start on `rescan()`, or to give it a peer's class loader (a `URLClassLoader` over a jar of `org.example.peer`).
 
 A change that holds extension objects anywhere gets a check that a stopped extension is collected: take a `WeakReference` to `host.classLoader(id)`, stop the extension, and assert `LeakCheck.collected(reference, Duration.ofSeconds(10))`. The reload test in `ChassisHostTest` and the Guice test show it.
 

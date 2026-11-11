@@ -14,6 +14,7 @@ import me.whereareiam.chassis.event.ExtensionEvent;
 import me.whereareiam.chassis.exception.ExtensionException;
 import me.whereareiam.chassis.model.ExtensionDescriptor;
 import me.whereareiam.chassis.model.InstalledExtension;
+import me.whereareiam.chassis.platform.PlatformPeer;
 import me.whereareiam.chassis.service.Services;
 import me.whereareiam.chassis.type.ExtensionState;
 import org.jetbrains.annotations.NotNull;
@@ -346,7 +347,15 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		AutoCloseable prepared = null;
 		LoadedContext base = null;
 		try {
-			loader = new ExtensionClassLoader(entry.id(), entry.found.jar().toUri().toURL(), options.getExportLayer(), descriptor.getExports(), dependencies);
+			List<ExtensionClassLoader.PeerPackages> peers = new ArrayList<>();
+			for (ExtensionDescriptor.PeerDependency peer : descriptor.getPeers()) {
+				if (peer.getPackages().isEmpty()) continue;
+				options.getPlatform().peer(peer.getId())
+						.map(PlatformPeer::getClassLoader)
+						.ifPresent(classLoader -> peers.add(new ExtensionClassLoader.PeerPackages(classLoader, peer.getPackages())));
+			}
+			loader = new ExtensionClassLoader(entry.id(), entry.found.jar().toUri().toURL(), options.getExportLayer(), descriptor.getExports(), dependencies,
+					peers);
 			prepared = options.getPreparation().prepare(new PreparedLoader(descriptor, entry.found.jar(), loader));
 			Class<?> main = Class.forName(descriptor.getMain(), true, loader);
 			if (!kind.isAssignableFrom(main))
