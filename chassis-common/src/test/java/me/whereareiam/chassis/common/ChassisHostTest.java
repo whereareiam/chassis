@@ -67,6 +67,7 @@ class ChassisHostTest {
 		System.clearProperty("chassis.test.dependent.shared");
 		System.clearProperty("chassis.test.dependent.secret");
 		System.clearProperty("chassis.test.dependent.library");
+		System.clearProperty("chassis.test.dependent.sharedFrom");
 		System.clearProperty("chassis.test.peeruser.saw");
 		System.clearProperty("chassis.test.peeruser.internal");
 	}
@@ -114,6 +115,43 @@ class ChassisHostTest {
 		assertEquals("true", System.getProperty("chassis.test.dependent.shared"));
 		assertEquals("false", System.getProperty("chassis.test.dependent.secret"));
 		assertEquals("false", System.getProperty("chassis.test.dependent.library"));
+	}
+
+	@Test
+	void aDependentSeesALibraryOfItsDependencyThatTheDependencyExports() throws Exception {
+		Path library = ExtensionJar.of("library.txt", "").with(LibraryText.class).write(folder.resolve("libraries/library.jar"));
+		ExtensionJar.of(DESCRIPTOR, """
+				id: greeting
+				version: 1.4.0
+				main: org.example.greeting.GreetingModule
+				exports: [org.example.greeting, org.example.library]
+				""").with(GreetingModule.class, Shared.class).write(folder.resolve("modules/greeting.jar"));
+		dependent("^1");
+
+		start(loader -> {
+			if (loader.descriptor().getId().equals("greeting")) loader.addJar(library);
+			return () -> {
+			};
+		});
+
+		assertEquals(ExtensionState.ENABLED, state("dependent"));
+		assertEquals("true", System.getProperty("chassis.test.dependent.library"));
+	}
+
+	@Test
+	void aPackageADependencyExportsIsItsEvenWhenTheDependentBundlesACopy() throws Exception {
+		greeting();
+		ExtensionJar.of(DESCRIPTOR, """
+				id: dependent
+				version: 1.0.0
+				main: org.example.dependent.DependentModule
+				dependencies: [{id: greeting}]
+				""").with(DependentModule.class, Shared.class).write(folder.resolve("modules/dependent.jar"));
+
+		start();
+
+		assertEquals(ExtensionState.ENABLED, state("dependent"));
+		assertEquals("chassis-extension:greeting", System.getProperty("chassis.test.dependent.sharedFrom"));
 	}
 
 	@Test

@@ -12,9 +12,9 @@ import java.util.List;
 /**
  * One extension's class loader: its jar, over the export layer, the exported classes of the extensions it depends on,
  * and the packages it names of the platform's peers. A class is looked for in the export layer first, then in the
- * packages it names of each peer, then in the jar and the jars a preparation added, then in the exported packages of
- * each dependency's own jar, so an extension cannot replace a class the host or a peer it names provides, and sees
- * of a dependency only what that dependency exports.
+ * packages it names of each peer, then in the exported packages of each dependency, then in the jar and the jars a
+ * preparation added, so an extension cannot replace a class the host, a peer it names or a dependency provides, and
+ * sees of a dependency only what that dependency exports.
  */
 public final class ExtensionClassLoader extends URLClassLoader {
 	static {
@@ -67,10 +67,12 @@ public final class ExtensionClassLoader extends URLClassLoader {
 		synchronized (getClassLoadingLock(name)) {
 			Class<?> found = findLoadedClass(name);
 			if (found == null) found = fromParent(name);
-			// A package the extension names of a peer is the peer's, so objects of it pass between the two.
+			// A package the extension names of a peer is the peer's, and a package a dependency exports is the
+			// dependency's, as the host's exported packages are the host's: a copy in this jar is never used, so objects
+			// of them pass between the two.
 			if (found == null) found = fromPeers(name);
-			if (found == null) found = ownClass(name);
 			if (found == null) found = fromDependencies(name);
+			if (found == null) found = ownClass(name);
 			if (found == null) throw new ClassNotFoundException(name);
 
 			if (resolve) resolveClass(found);

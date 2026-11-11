@@ -17,6 +17,15 @@ public final class DependentModule implements TestModule {
 		System.setProperty("chassis.test.dependent.shared", String.valueOf(visible("org.example.greeting.Shared")));
 		System.setProperty("chassis.test.dependent.secret", String.valueOf(visible("org.example.secret.Secret")));
 		System.setProperty("chassis.test.dependent.library", String.valueOf(visible("org.example.library.LibraryText")));
+		System.setProperty("chassis.test.dependent.sharedFrom", loaderOf("org.example.greeting.Shared"));
+	}
+
+	private String loaderOf(String name) {
+		try {
+			return Class.forName(name, false, getClass().getClassLoader()).getClassLoader().getName();
+		} catch (ClassNotFoundException e) {
+			return "none";
+		}
 	}
 
 	private boolean visible(String name) {

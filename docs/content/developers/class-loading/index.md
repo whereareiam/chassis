@@ -33,11 +33,17 @@ Leave everything else out. A library the host uses internally stays invisible to
 An extension's loader looks for a class in this order:
 
 1. the export layer: the JDK and the exported packages;
+<<<<<<< HEAD
 2. the [packages it names of the platform's peers](#packages-of-peers), from each peer's own class loader;
 3. the extension's own jar, then the jars a preparation added;
 4. the packages the extensions it depends on export, and those that their own dependencies export in turn.
+=======
+2. the [packages it names of the platform's peers](#packages-of-peers), from each peer's own class loader;
+3. the packages the extensions it depends on export, and those that their own dependencies export in turn;
+4. the extension's own jar, then the jars a preparation added.
+>>>>>>> 33004c3 (feat(adapter): extensions load their Attache groups when they need them)
 
-The fourth step covers every dependency that is enabled when the extension starts, optional dependencies included. A dependency names the packages its dependents see under `exports` in its [descriptor](../descriptor/index.md), each with its subpackages:
+The third step covers every dependency that is enabled when the extension starts, optional dependencies included. A dependency names the packages its dependents see under `exports` in its [descriptor](../descriptor/index.md), each with its subpackages:
 
 ```yaml
 id: greeting
@@ -55,9 +61,9 @@ import org.example.greeting.api.Shared;
 String greeting = Shared.GREETING;
 ```
 
-Nothing else of the dependency is visible: not its other packages and not the jars a preparation added for it. An extension that exports nothing gives its dependents no classes; they can still use the services it registers under types the host exports. Keep what dependents compile against in packages of its own, such as an `api` package, and export those.
+Nothing else of the dependency is visible. An exported package may lie in a jar a preparation added for it, such as a library it shares with its dependents; its other libraries stay its own. An extension that exports nothing gives its dependents no classes; they can still use the services it registers under types the host exports. Keep what dependents compile against in packages of its own, such as an `api` package, and export those.
 
-Because the export layer comes first, an extension cannot replace a class the host exports. A jar that bundles its own copy of an exported library gets the host's copy at runtime, and a class of the extension that lies in an exported package is taken from the host. Keep extensions in packages of their own.
+Because the export layer comes first, an extension cannot replace a class the host exports. A jar that bundles its own copy of an exported library gets the host's copy at runtime, and a class of the extension that lies in an exported package is taken from the host. The same holds for the packages a dependency exports: they come before the extension's own jar, so objects of them pass between the two. Keep extensions in packages of their own.
 
 A class that is neither exported by the host, nor in the extension's own jars, nor exported by a dependency is missing: loading the main class or running `enable` throws `NoClassDefFoundError`, and the extension is `FAILED` with that error as its failure. Either export the package from the host or shade the library into the extension's jar.
 

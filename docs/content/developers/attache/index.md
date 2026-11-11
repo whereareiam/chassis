@@ -37,6 +37,7 @@ HostOptions options = HostOptions.builder()
 | `folder` | Where downloaded libraries are kept, shared by every extension of the host. Required. |
 | `logging` | Attache's `LoggingHelper`. Defaults to the `System.Logger` named `attache`. |
 | `verbosity` | How much Attache logs for each extension, an Attache `VerbosityMode`. Defaults to `SUMMARY`. |
+| `repository` | A repository every extension's libraries may come from, besides those its descriptor names, such as the host's own. Call it once per repository. |
 
 ## Declaring libraries in an extension
 
@@ -44,9 +45,35 @@ An extension declares its libraries with Attache's Gradle plugin, which writes t
 
 Declare only what the host does not export. The [export layer](../class-loading/index.md#the-export-layer) comes first, so a class the host exports always wins over an extension's copy; keep the host's API and its shared libraries `compileOnly` in the extension.
 
+## Groups
+
+A library only some installations need, such as the driver of one database, goes in a group. Its libraries are not loaded before the main class; the extension loads the group once it knows it needs it:
+
+```kotlin
+// build.gradle.kts of the extension
+attache {
+    group("sqlite") { library("org.xerial:sqlite-jdbc:3.50.3.0") }
+    group("postgres") { library("org.postgresql:postgresql:42.7.8") }
+}
+```
+
+`AttacheLibraries.groups(id)` returns the `LibraryGroups` of an extension, which the host hands to it through [its own context](../index.md#a-context-of-your-own):
+
+```java
+ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ExampleModule.class,
+        base -> new HostModuleContext(base, libraries.groups(base.descriptor().getId())), factory);
+```
+
+```java
+// In the extension, with settings of its own:
+context.groups().load(settings.database().toLowerCase(Locale.ROOT));
+```
+
+`libraries` is the host's `AttacheLibraries`, and `groups()` stands for the method the host's context gives it. `load` skips a group already loaded. It throws `IllegalArgumentException` when the extension declares no group of a name, and `IllegalStateException` when a library cannot be loaded or the extension does not run. The `LibraryGroups` holds only the extension's id, so a host may keep it; it reaches the extension's current load.
+
 ## What happens to the libraries
 
 - A library the extension's loader already sees is skipped, so an extension does not load a second copy of what it already has.
-- A library only the extension declares lands in its own loader. The host does not see it, other extensions do not see it, and the extensions that depend on this one do not see it either, whatever the extension [exports](../descriptor/index.md#fields).
+- A library only the extension declares lands in its own loader. The host and other extensions do not see it. The extensions that depend on this one see it only when the extension [exports](../class-loading/index.md#one-extensions-class-loader) its packages, such as a database extension that exports `org.jdbi` with its API, so its dependents share its copy instead of bringing their own.
 - When the extension stops, Chassis closes Attache's manager for it and then its loader; the libraries go with the loader. A reload loads them again from `folder`, without downloading them again.
 - When a library cannot be downloaded or loaded, the extension fails to start, with Attache's reason, which names the library, as its failure.

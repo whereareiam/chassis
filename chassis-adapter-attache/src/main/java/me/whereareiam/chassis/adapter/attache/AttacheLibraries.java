@@ -1,13 +1,17 @@
 package me.whereareiam.chassis.adapter.attache;
 
 import lombok.Builder;
+import lombok.Singular;
 import me.whereareiam.attache.LoggingHelper;
 import me.whereareiam.attache.type.VerbosityMode;
 import me.whereareiam.chassis.ExtensionPreparation;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Loads the libraries an extension declares in its Attache descriptor into the extension's own class loader, before
@@ -24,41 +28,93 @@ import java.util.List;
  *         .build();
  * }</pre>
  *
+ * <p>Libraries an extension declares in a group are loaded only when it asks for them, through the
+ * {@link LibraryGroups} that {@link #groups(String)} returns and its host hands to it.</p>
+ *
  * <p>An extension whose libraries cannot all be loaded fails to start, with Attache's reason, which names the library,
  * as its failure.
  * Declare only libraries the host does not export: the classes the host exports always win over an extension's
  * own.</p>
  */
-@Builder
 public final class AttacheLibraries implements ExtensionPreparation {
-	/**
-	 * The folder downloaded libraries are kept in, shared by every extension of the host.
-	 */
 	private final @NotNull Path folder;
+	private final @NotNull LoggingHelper logging;
+	private final @NotNull VerbosityMode verbosity;
+	private final @NotNull List<String> repositories;
+	// The library manager of each running extension, by id, for its groups.
+	private final Map<String, ExtensionLibraryManager> running = new ConcurrentHashMap<>();
+
 	/**
-	 * Where Attache logs. Defaults to the {@link System.Logger} named {@code attache}.
+	 * Makes the preparation.
+	 *
+	 * @param folder       the folder downloaded libraries are kept in, shared by every extension of the host
+	 * @param logging      where Attache logs; defaults to the {@link System.Logger} named {@code attache}
+	 * @param verbosity    how much Attache logs about each extension's libraries; defaults to
+	 *                     {@link VerbosityMode#SUMMARY}
+	 * @param repositories repositories every extension's libraries may come from, besides those its descriptor names,
+	 *                     such as the host's own
 	 */
-	@Builder.Default
-	private final @NotNull LoggingHelper logging = new SystemLogging(System.getLogger("attache"));
-	/**
-	 * How much Attache logs about each extension's libraries. Defaults to {@link VerbosityMode#SUMMARY}.
-	 */
-	@Builder.Default
-	private final @NotNull VerbosityMode verbosity = VerbosityMode.SUMMARY;
+	@Builder
+	private AttacheLibraries(
+			@NotNull Path folder,
+			@Nullable LoggingHelper logging,
+			@Nullable VerbosityMode verbosity,
+			@Singular @NotNull List<String> repositories
+	) {
+		this.folder = folder;
+		this.logging = logging == null ? new SystemLogging(System.getLogger("attache")) : logging;
+		this.verbosity = verbosity == null ? VerbosityMode.SUMMARY : verbosity;
+		this.repositories = List.copyOf(repositories);
+	}
 
 	@Override
 	public @NotNull AutoCloseable prepare(@NotNull Loader loader) throws Exception {
+		String id = loader.descriptor().getId();
 		ExtensionLibraryManager libraries = new ExtensionLibraryManager(logging, folder, loader);
 		try {
 			libraries.setVerbosityMode(verbosity);
+			repositories.forEach(libraries::addRepository);
 			libraries.setDescriptorSources(List.of(loader.jar().toUri().toURL()));
 			libraries.loadDescriptors();
 		} catch (Exception e) {
 			closeAfter(libraries, e);
 			throw e;
 		}
+		running.put(id, libraries);
 
-		return libraries;
+		return () -> {
+			running.remove(id, libraries);
+			libraries.close();
+		};
+	}
+
+	/**
+	 * Returns the library groups of an extension, which the host hands to it through its context. The groups reach
+	 * the extension's current load: after a reload, the same object loads into the new one.
+	 *
+	 * <pre>{@code
+	 * ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ExampleModule.class,
+	 *         base -> new HostModuleContext(base, libraries.groups(base.descriptor().getId())), factory);
+	 * }</pre>
+	 *
+	 * @param id the extension's id
+	 * @return its groups; loading one throws {@link IllegalStateException} while the extension does not run
+	 */
+	public @NotNull LibraryGroups groups(@NotNull String id) {
+		return groups -> {
+			ExtensionLibraryManager libraries = running.get(id);
+			if (libraries == null)
+				throw new IllegalStateException("'" + id + "' does not run, so it cannot load the library groups " + String.join(", ", groups));
+			try {
+				libraries.loadGroups(groups);
+			} catch (IllegalArgumentException undeclared) {
+				// Attache names the groups the extension does declare.
+				throw undeclared;
+			} catch (RuntimeException failure) {
+				throw new IllegalStateException("'" + id + "' could not load the library groups " + String.join(", ", groups)
+						+ ": " + failure.getMessage(), failure);
+			}
+		};
 	}
 
 	private static void closeAfter(ExtensionLibraryManager libraries, Exception failure) {
