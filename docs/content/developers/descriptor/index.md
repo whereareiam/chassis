@@ -54,6 +54,37 @@ Only `id`, `version` and `main` are required.
 
 In code the descriptor is an `ExtensionDescriptor`: `context.descriptor()` inside an extension, `InstalledExtension.getDescriptor()` from the [control API](../control/index.md).
 
+## Fields of the host's own
+
+A host may give its extensions fields of its own in the same file, such as where updates of an extension come from. It names a type for them when it makes its `ChassisHost`, and Chassis reads each descriptor into that type too:
+
+```yaml
+id: chirper
+version: 2.0.0
+main: com.example.chirper.Chirper
+updater:
+  release: {provider: MODRINTH, id: example/Chirper}
+```
+
+```java
+public record ModuleFields(@Nullable Updater updater) {
+    public record Updater(@Nullable Source release, @Nullable Source dev) {}
+    public record Source(String provider, String id) {}
+}
+```
+
+```java
+ChassisHost<ModuleContext, ModuleFields> modules = new ChassisHost<>(options, ExampleModule.class, ModuleFields.class,
+        (base, fields) -> new HostModuleContext(base), ExtensionFactory.CONSTRUCTOR);
+
+Optional<ModuleFields> fields = modules.fields("chirper");
+```
+
+- The host gets the fields typed twice: when it makes an extension's [context](../index.md#a-context-of-your-own), and from `fields(id)` for any installed extension whose descriptor could be read. Extensions see none of them unless the host's context hands them on.
+- The type is read field by field, as Chassis reads its own: Chassis ignores the host's fields, and the type ignores Chassis's. A field missing from the descriptor is `null`.
+- A value that does not fit the type, such as a list where it expects a map, fails the extension with `The descriptor of <id> has fields of the host that cannot be read: ...`. Checking the values is the host's: Chassis does not look at them.
+- Give the host's fields names Chassis does not use, or nest them under one name of the host's own.
+
 ## How Chassis decides
 
 Each check leads to a state. An extension that does not fit the host fails; an extension that lacks something which may still arrive waits.

@@ -91,7 +91,7 @@ class ExampleHostTest {
                 version: 1.0.0
                 main: org.example.greeting.GreetingModule
                 """).with(GreetingModule.class).write(folder.resolve("modules/greeting.jar"));
-        ChassisHost<ExtensionContext> host = new ChassisHost<>(options(), ExampleModule.class, base -> base,
+        ChassisHost<ExtensionContext, Void> host = new ChassisHost<>(options(), ExampleModule.class, base -> base,
                 ExtensionFactory.CONSTRUCTOR);
 
         host.start();

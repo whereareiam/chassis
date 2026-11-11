@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * context holds.
  *
  * <pre>{@code
- * ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ExampleModule.class,
+ * ChassisHost<ModuleContext, Void> modules = new ChassisHost<>(options, ExampleModule.class,
  *         base -> new HostModuleContext(base, scheduler), new SpringExtensionFactory(hostContext));
  * }</pre>
  *

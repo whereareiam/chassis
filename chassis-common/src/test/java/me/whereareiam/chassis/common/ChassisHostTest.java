@@ -55,7 +55,7 @@ class ChassisHostTest {
 	Path folder;
 
 	private final Map<String, PlatformPeer> peers = new HashMap<>();
-	private ChassisHost<ExtensionContext> host;
+	private ChassisHost<ExtensionContext, Void> host;
 
 	@BeforeEach
 	void clearMarks() {
@@ -483,12 +483,58 @@ class ChassisHostTest {
 		assertFalse(Files.exists(folder.resolve("modules.yml")));
 	}
 
+	@Test
+	void aHostGetsItsOwnFieldsOfEachDescriptorTypedWhenItMakesTheContextAndAfter() throws Exception {
+		ExtensionJar.of(DESCRIPTOR, """
+				id: library
+				version: 1.0.0
+				main: org.example.library.LibraryModule
+				updater: {release: example/Library}
+				""").with(LibraryModule.class).write(folder.resolve("modules/library.jar"));
+		ExtensionJar.of(DESCRIPTOR, """
+				id: odd
+				version: 1.0.0
+				main: org.example.library.LibraryModule
+				updater: [not, a, map]
+				""").with(LibraryModule.class).write(folder.resolve("modules/odd.jar"));
+		List<ModuleFields> seen = new ArrayList<>();
+		ChassisHost<ExtensionContext, ModuleFields> fielded = new ChassisHost<>(options(ExtensionPreparation.NONE),
+				TestModule.class, ModuleFields.class, (base, fields) -> {
+			seen.add(fields);
+			return base;
+		}, ExtensionFactory.CONSTRUCTOR);
+
+		fielded.start();
+		try {
+			ModuleFields expected = new ModuleFields(new Updater("example/Library"));
+			assertEquals(List.of(expected), seen);
+			assertEquals(Optional.of(expected), fielded.fields("library"));
+			assertEquals(ExtensionState.FAILED, fielded.find("odd").orElseThrow().getState());
+			assertTrue(fielded.find("odd").orElseThrow().getFailure().getMessage()
+					.startsWith("The descriptor of odd has fields of the host that cannot be read: "));
+			assertEquals(Optional.empty(), fielded.fields("odd"));
+		} finally {
+			fielded.stop();
+		}
+	}
+
+	record ModuleFields(Updater updater) {
+	}
+
+	record Updater(String release) {
+	}
+
 	private void start() throws Exception {
 		start(ExtensionPreparation.NONE);
 	}
 
 	private void start(ExtensionPreparation preparation) throws Exception {
-		HostOptions options = HostOptions.builder()
+		host = new ChassisHost<>(options(preparation), TestModule.class, base -> base, ExtensionFactory.CONSTRUCTOR);
+		host.start();
+	}
+
+	private HostOptions options(ExtensionPreparation preparation) {
+		return HostOptions.builder()
 				.kind("module")
 				.folder(folder.resolve("modules"))
 				.descriptorFile(DESCRIPTOR)
@@ -515,8 +561,6 @@ class ChassisHostTest {
 				.exportLayer(new ExportLayer(getClass().getClassLoader(), List.of("me.whereareiam.chassis")))
 				.preparation(preparation)
 				.build();
-		host = new ChassisHost<>(options, TestModule.class, base -> base, ExtensionFactory.CONSTRUCTOR);
-		host.start();
 	}
 
 	private ExtensionState state(String id) {

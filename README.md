@@ -24,7 +24,7 @@ HostOptions options = HostOptions.builder()
                 List.of("me.whereareiam.chassis", "com.example.host.api")))
         .build();
 
-ChassisHost<ExtensionContext> modules = new ChassisHost<>(options, ExampleModule.class, base -> base, ExtensionFactory.CONSTRUCTOR);
+ChassisHost<ExtensionContext, Void> modules = new ChassisHost<>(options, ExampleModule.class, base -> base, ExtensionFactory.CONSTRUCTOR);
 modules.start();
 ```
 

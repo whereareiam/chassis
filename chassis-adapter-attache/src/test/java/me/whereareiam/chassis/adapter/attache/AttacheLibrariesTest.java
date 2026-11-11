@@ -40,7 +40,7 @@ class AttacheLibrariesTest {
 	@TempDir
 	Path folder;
 
-	private ChassisHost<ExtensionContext> host;
+	private ChassisHost<ExtensionContext, Void> host;
 	private AttacheLibraries libraries;
 
 	@BeforeEach

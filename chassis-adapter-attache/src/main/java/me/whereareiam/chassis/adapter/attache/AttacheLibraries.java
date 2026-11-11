@@ -93,7 +93,7 @@ public final class AttacheLibraries implements ExtensionPreparation {
 	 * the extension's current load: after a reload, the same object loads into the new one.
 	 *
 	 * <pre>{@code
-	 * ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ExampleModule.class,
+	 * ChassisHost<ModuleContext, Void> modules = new ChassisHost<>(options, ExampleModule.class,
 	 *         base -> new HostModuleContext(base, libraries.groups(base.descriptor().getId())), factory);
 	 * }</pre>
 	 *

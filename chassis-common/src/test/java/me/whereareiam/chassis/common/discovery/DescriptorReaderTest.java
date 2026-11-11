@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -99,6 +100,49 @@ class DescriptorReaderTest {
 		assertThrows(DescriptorException.class, () -> read("id: ok\nversion: 1\nmain: a.B\nhost: ^x"));
 		assertEquals("The export 'net.example.' of ok is not a package name",
 				assertThrows(DescriptorException.class, () -> read("id: ok\nversion: 1\nmain: a.B\nexports: [net.example.]")).getMessage());
+	}
+
+	@Test
+	void theHostsOwnFieldsAreReadIntoItsTypeBesideTheOnesChassisKnows() throws Exception {
+		String text = """
+				id: chirper
+				version: 2.0.0
+				main: net.example.Chirper
+				updater:
+				  release: {provider: MODRINTH, id: whereareiam/Chirper}
+				  dev: {provider: GITHUB, id: whereareiam/Chirper}
+				""";
+		DescriptorReader.Read<HostFields> read = reader.read("x.jar", new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)),
+				HostFields.class);
+
+		assertEquals("chirper", read.descriptor().getId());
+		assertEquals(new Source("MODRINTH", "whereareiam/Chirper"), read.fields().updater().release());
+		assertEquals(new Source("GITHUB", "whereareiam/Chirper"), read.fields().updater().dev());
+		assertNull(reader.read("x.jar", new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)), null).fields());
+	}
+
+	@Test
+	void hostFieldsThatDoNotFitTheTypeFailTheDescriptor() {
+		String text = """
+				id: chirper
+				version: 2.0.0
+				main: net.example.Chirper
+				updater: [not, a, map]
+				""";
+
+		DescriptorException failure = assertThrows(DescriptorException.class, () -> reader.read("x.jar",
+				new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)), HostFields.class));
+		assertTrue(failure.getMessage().startsWith("The descriptor of chirper has fields of the host that cannot be read: "),
+				failure.getMessage());
+	}
+
+	record HostFields(Updater updater) {
+	}
+
+	record Updater(Source release, Source dev) {
+	}
+
+	record Source(String provider, String id) {
 	}
 
 	private ExtensionDescriptor read(String text) throws DescriptorException {

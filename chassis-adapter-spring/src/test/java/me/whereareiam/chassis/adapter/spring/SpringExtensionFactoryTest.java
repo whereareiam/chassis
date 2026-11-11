@@ -40,7 +40,7 @@ class SpringExtensionFactoryTest {
 	Path folder;
 
 	private AnnotationConfigApplicationContext hostContext;
-	private ChassisHost<ExtensionContext> host;
+	private ChassisHost<ExtensionContext, Void> host;
 
 	@BeforeEach
 	void startHostContext() {

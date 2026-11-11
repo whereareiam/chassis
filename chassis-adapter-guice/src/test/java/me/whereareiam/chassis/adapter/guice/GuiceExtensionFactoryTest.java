@@ -38,7 +38,7 @@ class GuiceExtensionFactoryTest {
 				main: org.example.guice.InjectedModule
 				""").with(InjectedModule.class).write(folder.resolve("modules/injected.jar"));
 		Injector hostInjector = Guice.createInjector(binder -> binder.bind(Clock.class).toInstance(() -> 42));
-		ChassisHost<ExtensionContext> host = new ChassisHost<>(options(), GuiceModule.class, base -> base,
+		ChassisHost<ExtensionContext, Void> host = new ChassisHost<>(options(), GuiceModule.class, base -> base,
 				GuiceExtensionFactory.builder(hostInjector, ExtensionContext.class).export(Clock.class).build());
 
 		host.start();
