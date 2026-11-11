@@ -36,6 +36,7 @@ body:
         - Lifecycle
         - Selection
         - Services
+        - Libraries
         - Guice
         - Commands
         - NeoForge

@@ -12,6 +12,7 @@ lombok = "1.18.42"
 # general
 configura = "2.1.0"
 guice = "7.0.0"
+attache = "1.3.0"
 commandant = "dev-b9903b5"
 cloud = "2.0.0"
 adventure = "4.25.0"
@@ -37,6 +38,7 @@ toolkit-publish-maven = { group = "me.whereareiam.toolkit", name = "publish-mave
 # general
 configura = { group = "me.whereareiam", name = "configura", version.ref = "configura" }
 guice = { group = "com.google.inject", name = "guice", version.ref = "guice" }
+attache-standalone = { group = "me.whereareiam", name = "attache-standalone", version.ref = "attache" }
 commandant-api = { group = "me.whereareiam", name = "commandant-api", version.ref = "commandant" }
 cloud-core = { group = "org.incendo", name = "cloud-core", version.ref = "cloud" }
 adventure-api = { group = "net.kyori", name = "adventure-api", version.ref = "adventure" }

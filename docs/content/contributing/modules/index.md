@@ -10,6 +10,7 @@ description: How the repository is laid out, which module owns what, and how a h
 | `chassis-api` | `chassis-api/` | The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `Extensions`, `Services`, `Platform`, descriptors, versions, states, events and exceptions. No behavior beyond parsing versions and ranges. |
 | `chassis-common` | `chassis-common/` | The standard host, `ChassisHost`, and everything it runs: discovery, resolution, loading, lifecycle, services and the selection file. |
 | `chassis-adapter-guice` | `chassis-adapter-guice/` | `GuiceExtensionFactory`. Guice is `compileOnly`; the host ships it. |
+| `chassis-adapter-attache` | `chassis-adapter-attache/` | `AttacheLibraryLoader`. Attache is `compileOnly`. |
 | `platform-neoforge` | `chassis-platform/type/platform-neoforge/` | `NeoForgePlatform`. NeoForge's loader is `compileOnly`. |
 | `platform-bukkit` | `chassis-platform/type/platform-bukkit/` | `BukkitPlatform`. Spigot's API is `compileOnly`. |
 | `platform-velocity` | `chassis-platform/type/platform-velocity/` | `VelocityPlatform`. Velocity 3's API is `compileOnly`; Velocity 4 keeps the methods it uses. |

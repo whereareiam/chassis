@@ -16,6 +16,7 @@ Chassis is published to the [public Maven registry](https://registry.whereareiam
 | `chassis-api` | extensions, through the host's API | `Extension`, `ExtensionContext`, `Services`, `Extensions`, descriptors and states |
 | `chassis-common` | the host, shipped inside it | `ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile` |
 | `chassis-adapter-guice` | a host that makes extensions through Guice | `GuiceExtensionFactory`; see [Guice](./guice/index.md) |
+| `chassis-adapter-attache` | a host that loads the libraries extensions declare with Attache | `AttacheLibraryLoader`; see [Libraries](./libraries/index.md) |
 | `platform-neoforge` | a host on NeoForge | `NeoForgePlatform`; see [Platforms](./platforms/index.md#neoforge) |
 | `platform-bukkit` | a host on Bukkit, Spigot, Paper or Folia | `BukkitPlatform`; see [Platforms](./platforms/index.md#bukkit-spigot-paper-and-folia) |
 | `platform-velocity` | a host on Velocity | `VelocityPlatform`; see [Platforms](./platforms/index.md#velocity) |
@@ -60,7 +61,7 @@ public interface ExampleModule extends Extension<ExtensionContext> {
 }
 ```
 
-`ExtensionContext` is what Chassis gives every extension: its descriptor, its data folder, a logger, the services and `onClose`. To give extensions more, see [A context of your own](#a-context-of-your-own).
+`ExtensionContext` is what Chassis gives every extension: its descriptor, its data folder, a logger, the services, its libraries and `onClose`. To give extensions more, see [A context of your own](#a-context-of-your-own).
 
 ## Start the host
 
@@ -120,6 +121,7 @@ public final class ExampleHost {
 | `platform` | The platform the host runs on. See [Platforms](./platforms/index.md). |
 | `exportLayer` | The packages extensions see of the host. See [What extensions see](./class-loading/index.md). |
 | `loggers` | Gives the `System.Logger` of a name: the host's kind word or an extension's id. Defaults to `System::getLogger`. |
+| `libraries` | Loads the libraries extensions declare. Defaults to `LibraryLoader.NONE`. See [Libraries](./libraries/index.md). |
 
 The last two constructor arguments make each load: `base -> base` hands every extension the context Chassis keeps, and `ExtensionFactory.CONSTRUCTOR` makes the main class through its public constructor without parameters. [Guice](./guice/index.md) replaces the factory.
 
@@ -211,6 +213,7 @@ final class HostModuleContext implements ModuleContext {
     @Override public @NotNull Path dataFolder() { return base.dataFolder(); }
     @Override public @NotNull System.Logger logger() { return base.logger(); }
     @Override public @NotNull Services services() { return base.services(); }
+    @Override public @NotNull ExtensionLibraries libraries() { return base.libraries(); }
     @Override public void onClose(@NotNull AutoCloseable resource) { base.onClose(resource); }
     @Override public Scheduler scheduler() { return scheduler; }
 }
@@ -229,6 +232,7 @@ ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ExampleModule.cl
 | --- | --- |
 | declare dependencies, versions and requirements of an extension | [Descriptor](./descriptor/index.md) |
 | decide which classes of the host extensions see | [What extensions see](./class-loading/index.md) |
+| load the libraries extensions declare | [Libraries](./libraries/index.md) |
 | know when an extension starts, waits, fails or stops | [Lifecycle and states](./lifecycle/index.md) |
 | let administrators turn extensions on and off | [Control API](./control/index.md) and [Selection file](./selection/index.md) |
 | share objects between the host and its extensions | [Services](./services/index.md) |

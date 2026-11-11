@@ -9,6 +9,7 @@
     "descriptor",
     "---Running Extensions---",
     "class-loading",
+    "libraries",
     "lifecycle",
     "selection",
     "services",

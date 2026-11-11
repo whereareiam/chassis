@@ -17,11 +17,13 @@ When changing behavior:
 ### Module Map
 
 - `chassis-api`
-  The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `Extensions`, `Services` with `ServiceKey` and `ServiceRegistration`, `Platform`, `ExtensionDescriptor`, `InstalledExtension`, `Version`, `VersionRange`, `ExtensionState`, events and exceptions.
+  The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `Extensions`, `Services` with `ServiceKey` and `ServiceRegistration`, `LibraryLoader` with `LibraryTarget` and `ExtensionLibraries`, `Platform`, `ExtensionDescriptor`, `InstalledExtension`, `Version`, `VersionRange`, `ExtensionState`, events and exceptions.
 - `chassis-common`
-  The standard host. `ChassisHost` owns every installed extension and implements `Extensions`; `HostOptions` is what a host tells it; `SelectionFile` keeps turned-off ids. Packages: `discovery` (`ExtensionDiscovery`, `DescriptorReader`), `resolution` (`DependencyResolver`), `loading` (`ExportLayer`, `ExtensionClassLoader`), `lifecycle` (`LoadedContext`), `service` (`ServiceRegistry`).
+  The standard host. `ChassisHost` owns every installed extension and implements `Extensions`; `HostOptions` is what a host tells it; `SelectionFile` keeps turned-off ids. Packages: `discovery` (`ExtensionDiscovery`, `DescriptorReader`), `resolution` (`DependencyResolver`), `loading` (`ExportLayer`, `ExtensionClassLoader`, `LoadedLibraries`), `lifecycle` (`LoadedContext`), `service` (`ServiceRegistry`).
 - `chassis-adapter-guice`
   `GuiceExtensionFactory`: an injector of its own per extension, never a child injector, because Guice puts a child's just-in-time bindings into the parent and the host would keep the extension's class loader. `GuiceExtensionFactoryTest` proves it. Guice is `compileOnly`.
+- `chassis-adapter-attache`
+  `AttacheLibraryLoader`: a `LibraryLoader` that loads the libraries an extension declares with Attache's Gradle plugin into its class loader, through a library manager of its own made from the host's. Attache is `compileOnly`.
 - `chassis-adapter-commandant`
   `ExtensionCommands`: `/<root> <kind> list|info|enable|disable|reload|rescan` on Cloud, each with the permission `<root>.command.<kind>.<name>` the host checks and Commandant's definition id `<kind>-<name>`; each answer a translatable component under the host's key prefix with named arguments, worded by the host's translations. Cloud, Commandant's API and Adventure are `compileOnly`.
 - `chassis-platform/type/platform-neoforge` (project `:platform-neoforge`)
@@ -37,7 +39,7 @@ When changing behavior:
 - `docs/content/`
   Documentation for hosts and contributors.
 
-Not in the repository yet: `chassis-adapter-attache` (shared libraries), `chassis-adapter-commandant` (commands), and a platform for BungeeCord. Do not document them as existing.
+Not in the repository yet: a platform for BungeeCord. Do not document it as existing.
 
 ### Where To Look First
 
@@ -61,7 +63,7 @@ Not in the repository yet: `chassis-adapter-attache` (shared libraries), `chassi
 
 ### API Surfaces
 
-- `chassis-api` is the public API surface, together with the public types of `chassis-common`, `chassis-adapter-guice`, `chassis-adapter-commandant`, the platforms and `chassis-testing` that hosts use (`ExtensionCommands`, `ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile`, `GuiceExtensionFactory`, `NeoForgePlatform`, `BukkitPlatform`, `VelocityPlatform`, `ExtensionJar`, `LeakCheck`).
+- `chassis-api` is the public API surface, together with the public types of `chassis-common`, `chassis-adapter-guice`, `chassis-adapter-commandant`, the platforms and `chassis-testing` that hosts use (`ExtensionCommands`, `AttacheLibraryLoader`, `ChassisHost`, `HostOptions`, `ExportLayer`, `SelectionFile`, `GuiceExtensionFactory`, `NeoForgePlatform`, `BukkitPlatform`, `VelocityPlatform`, `ExtensionJar`, `LeakCheck`).
 - Public API changes are compatibility-sensitive.
 - Public API code must have complete Javadocs for public classes, interfaces, enums, and public methods.
 
@@ -104,7 +106,7 @@ The version comes from the `VERSION` environment variable and defaults to `dev`.
 ### Verification Guidance
 
 - Prefer targeted Gradle tasks for the module you changed before running broad root verification.
-- Add or update automated tests when behavior changes, in the closest existing test: `VersionRangeTest`, `DescriptorReaderTest`, `ChassisHostTest`, `ServiceRegistryTest`, `GuiceExtensionFactoryTest`, `BukkitPlatformTest`, `VelocityPlatformTest`.
+- Add or update automated tests when behavior changes, in the closest existing test: `VersionRangeTest`, `DescriptorReaderTest`, `ChassisHostTest`, `ServiceRegistryTest`, `GuiceExtensionFactoryTest`, `AttacheLibraryLoaderTest`, `BukkitPlatformTest`, `VelocityPlatformTest`.
 - Host tests write extension jars with `ExtensionJar`; the extensions live in `org.example.<name>` under the test sources, outside every exported package.
 - A change that could keep an extension in memory gets a `LeakCheck` assertion.
 
@@ -148,7 +150,7 @@ A merged pull request lands in the release draft as `* <title> ([#<number>](<url
 
 Areas for behavior hosts and extensions notice:
 
-`Discovery`, `Resolution`, `Loading`, `Lifecycle`, `Selection`, `Services`, `Guice`, `Commands`, `NeoForge`, `Bukkit`, `Velocity`, `Testing`
+`Discovery`, `Resolution`, `Loading`, `Lifecycle`, `Selection`, `Services`, `Libraries`, `Guice`, `Commands`, `NeoForge`, `Bukkit`, `Velocity`, `Testing`
 
 - reuse an existing area whenever one fits
 - add a new area only for something readers recognise by that name, such as a new adapter or platform, and add it to this list, to the issue template's areas and to the pull request template in the same pull request
