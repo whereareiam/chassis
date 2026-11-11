@@ -60,7 +60,7 @@ attache {
 `AttacheLibraries.groups(id)` returns the `LibraryGroups` of an extension, which the host hands to it through [its own context](../index.md#a-context-of-your-own):
 
 ```java
-ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ExampleModule.class,
+ChassisHost<ModuleContext, Void> modules = new ChassisHost<>(options, ExampleModule.class,
         base -> new HostModuleContext(base, libraries.groups(base.descriptor().getId())), factory);
 ```
 

@@ -27,7 +27,7 @@ Pass a `SpringExtensionFactory` with the host's context to `ChassisHost` in plac
 import me.whereareiam.chassis.adapter.spring.SpringExtensionFactory;
 import me.whereareiam.chassis.common.ChassisHost;
 
-ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ExampleModule.class,
+ChassisHost<ModuleContext, Void> modules = new ChassisHost<>(options, ExampleModule.class,
         base -> new HostModuleContext(base, scheduler), new SpringExtensionFactory(hostContext));
 ```
 

@@ -36,7 +36,7 @@ ExtensionFactory factory = GuiceExtensionFactory.builder(hostInjector, ModuleCon
         .bindings((binder, context) -> binder.bind(ModuleSettings.class).toInstance(settingsOf(context)))
         .build();
 
-ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ExampleModule.class,
+ChassisHost<ModuleContext, Void> modules = new ChassisHost<>(options, ExampleModule.class,
         base -> new HostModuleContext(base, scheduler), factory);
 ```
 

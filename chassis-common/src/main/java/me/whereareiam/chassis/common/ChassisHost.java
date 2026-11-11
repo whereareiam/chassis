@@ -39,7 +39,7 @@ import java.util.function.Consumer;
  * it stops. It is the {@link Extensions} a host hands to administrators.
  *
  * <pre>{@code
- * ChassisHost<ModuleContext> modules = new ChassisHost<>(options, ArborModule.class, base -> new ArborModuleContext(base, ...), factory);
+ * ChassisHost<ModuleContext, Void> modules = new ChassisHost<>(options, ArborModule.class, base -> new ArborModuleContext(base, ...), factory);
  * modules.start();
  * ...
  * modules.stop();
@@ -52,15 +52,24 @@ import java.util.function.Consumer;
  * did not start, with why, and one that did not stop cleanly. Each start and stop of an extension is a debug line; a
  * host says in its own words what it started and stopped, from {@link #list()}.</p>
  *
+ * <p>A host that reads fields of its own from each descriptor, such as where updates of an extension come from, names
+ * their type; it gets them typed, when it makes an extension's context and from {@link #fields(String)}.</p>
+ *
+ * <pre>{@code
+ * ChassisHost<ModuleContext, ModuleFields> modules = new ChassisHost<>(options, ArborModule.class, ModuleFields.class,
+ *         (base, fields) -> new ArborModuleContext(base, ...), factory);
+ * }</pre>
+ *
  * @param <C> the context the host gives its kind of extension
+ * @param <F> the type the host reads its own fields of a descriptor into; {@link Void} for a host that reads none
  */
-public final class ChassisHost<C extends ExtensionContext> implements Extensions {
+public final class ChassisHost<C extends ExtensionContext, F> implements Extensions {
 	private final @NotNull HostOptions options;
 	private final @NotNull Class<?> kind;
-	private final @NotNull ContextFactory<C> contexts;
+	private final @NotNull FieldsContextFactory<C, F> contexts;
 	private final @NotNull ExtensionFactory factory;
 	private final @NotNull System.Logger logger;
-	private final @NotNull ExtensionDiscovery discovery;
+	private final @NotNull ExtensionDiscovery<F> discovery;
 	private final @NotNull DependencyResolver resolver;
 	private final @NotNull SelectionFile selection;
 	private final @NotNull ServiceRegistry registry;
@@ -86,15 +95,60 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 			@NotNull ContextFactory<C> contexts,
 			@NotNull ExtensionFactory factory
 	) {
+		this(null, options, kind, (base, fields) -> contexts.create(base), factory);
+	}
+
+	/**
+	 * Makes the extensions of a host that reads fields of its own from each descriptor; nothing is read until
+	 * {@link #start()}. The fields are read from the same file as the descriptor, into the host's type: fields Chassis
+	 * knows and fields the type lacks are left out, and an extension whose fields cannot be read fails.
+	 *
+	 * @param options  how the host loads its extensions
+	 * @param kind     the host's extension contract, such as {@code ArborModule}; a main class must implement it
+	 * @param fields   the type the host reads its fields into, such as a record with an {@code updater} component
+	 * @param contexts makes the host's context of an extension from the one Chassis keeps and the host's fields
+	 * @param factory  makes the instance of a main class
+	 */
+	public ChassisHost(
+			@NotNull HostOptions options,
+			@NotNull Class<? extends Extension<C>> kind,
+			@NotNull Class<F> fields,
+			@NotNull FieldsContextFactory<C, F> contexts,
+			@NotNull ExtensionFactory factory
+	) {
+		this(fields, options, kind, contexts, factory);
+	}
+
+	// The fields first: both public constructors end here, and a host that reads none passes no type.
+	private ChassisHost(
+			@Nullable Class<F> fields,
+			HostOptions options,
+			Class<? extends Extension<C>> kind,
+			FieldsContextFactory<C, F> contexts,
+			ExtensionFactory factory
+	) {
 		this.options = options;
 		this.kind = kind;
 		this.contexts = contexts;
 		this.factory = factory;
 		this.logger = options.getLoggers().apply(options.getKind());
-		this.discovery = new ExtensionDiscovery(options.getFolder(), options.getDescriptorFile());
+		this.discovery = new ExtensionDiscovery<>(options.getFolder(), options.getDescriptorFile(), fields);
 		this.resolver = new DependencyResolver(options.getHostVersion(), options.getOffered(), options.getPlatform());
 		this.selection = new SelectionFile(options.getSelectionFile(), options.getKind());
 		this.registry = new ServiceRegistry(error -> logger.log(System.Logger.Level.WARNING, "A service listener failed", error));
+	}
+
+	/**
+	 * Returns the host's own fields of an installed extension's descriptor, as the host names their type.
+	 *
+	 * @param id the extension's id
+	 * @return the fields, or empty when no such extension is installed, its descriptor could not be read, or the host
+	 * reads no fields
+	 */
+	public synchronized @NotNull Optional<F> fields(@NotNull String id) {
+		Entry entry = entries.get(id);
+
+		return entry == null ? Optional.empty() : Optional.ofNullable(entry.found.fields());
 	}
 
 	/**
@@ -114,7 +168,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 	 */
 	public synchronized void start() throws IOException {
 		Set<String> disabled = selection.disabled();
-		for (ExtensionDiscovery.Found found : discovery.discover()) install(found, disabled);
+		for (ExtensionDiscovery.Found<F> found : discovery.discover()) install(found, disabled);
 		settle();
 	}
 
@@ -209,7 +263,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 			throw new ExtensionException(id, entry.found.jar().getFileName() + " is gone; '" + id + "' is no longer installed");
 		}
 
-		ExtensionDiscovery.Found reread = discovery.read(entry.found.jar());
+		ExtensionDiscovery.Found<F> reread = discovery.read(entry.found.jar());
 		if (reread.descriptor() != null && !reread.id().equals(id)) {
 			remove(entry);
 			install(reread, Set.of());
@@ -230,7 +284,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 			Set<String> disabled = selection.disabled();
 			Set<Path> known = new LinkedHashSet<>();
 			entries.values().forEach(entry -> known.add(entry.found.jar()));
-			for (ExtensionDiscovery.Found found : discovery.discover())
+			for (ExtensionDiscovery.Found<F> found : discovery.discover())
 				if (!known.contains(found.jar())) install(found, disabled);
 		} catch (IOException e) {
 			logger.log(System.Logger.Level.WARNING, "Could not look at " + options.getFolder() + " again", e);
@@ -268,10 +322,10 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		return entry;
 	}
 
-	private void install(ExtensionDiscovery.Found found, Set<String> disabled) {
+	private void install(ExtensionDiscovery.Found<F> found, Set<String> disabled) {
 		String id = found.id();
 		if (entries.containsKey(id)) {
-			found = new ExtensionDiscovery.Found(found.jar(), null, new ExtensionException(id,
+			found = ExtensionDiscovery.Found.failed(found.jar(), new ExtensionException(id,
 					"Both " + entries.get(id).found.jar().getFileName() + " and " + found.jar().getFileName() + " are '" + id + "'; " + found.jar().getFileName() + " is left out"));
 			id = found.id();
 			if (entries.containsKey(id)) return;
@@ -363,7 +417,7 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 
 			Path dataFolder = Files.createDirectories(options.getDataFolder().resolve(entry.id()));
 			base = new LoadedContext(descriptor, dataFolder, options.getLoggers().apply(entry.id()), registry);
-			C context = contexts.create(base);
+			C context = contexts.create(base, entry.found.fields());
 			Extension<C> instance = (Extension<C>) factory.create(main, context);
 			instance.enable(context);
 
@@ -543,15 +597,35 @@ public final class ChassisHost<C extends ExtensionContext> implements Extensions
 		@NotNull C create(@NotNull ExtensionContext base) throws Exception;
 	}
 
+	/**
+	 * Makes the host's context of an extension from the one Chassis keeps and the host's own fields of the extension's
+	 * descriptor; the host decides what of its fields the extension sees.
+	 *
+	 * @param <C> the host's context
+	 * @param <F> the type the host reads its fields into
+	 */
+	@FunctionalInterface
+	public interface FieldsContextFactory<C extends ExtensionContext, F> {
+		/**
+		 * Makes the context of one load.
+		 *
+		 * @param base   the context Chassis keeps for the load
+		 * @param fields the host's fields of the extension's descriptor
+		 * @return the host's context
+		 * @throws Exception when the context cannot be made; the extension then fails to start
+		 */
+		@NotNull C create(@NotNull ExtensionContext base, F fields) throws Exception;
+	}
+
 	private final class Entry {
-		private ExtensionDiscovery.Found found;
+		private ExtensionDiscovery.Found<F> found;
 		// null: installed and not yet decided.
 		private ExtensionState state;
 		private List<String> waitingFor = List.of();
 		private Throwable failure;
 		private Loaded loaded;
 
-		private Entry(ExtensionDiscovery.Found found) {
+		private Entry(ExtensionDiscovery.Found<F> found) {
 			this.found = found;
 		}
 
