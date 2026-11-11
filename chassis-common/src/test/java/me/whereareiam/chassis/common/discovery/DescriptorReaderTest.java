@@ -34,7 +34,7 @@ class DescriptorReaderTest {
 				    version: ^2
 				    optional: true
 				exports: [net.example.monitoring.api]
-				platforms: [NeoForge]
+				platforms: [{name: NeoForge}]
 				plugins: [luckperms]
 				""");
 
@@ -44,8 +44,27 @@ class DescriptorReaderTest {
 		assertTrue(descriptor.getDependencies().getFirst().isOptional());
 		assertEquals("^2", descriptor.getDependencies().getFirst().getVersion().toString());
 		assertEquals(List.of("net.example.monitoring.api"), descriptor.getExports());
-		assertEquals(List.of("neoforge"), descriptor.getPlatforms());
+		assertEquals(List.of("neoforge"), descriptor.getPlatforms().stream().map(ExtensionDescriptor.SupportedPlatform::getName).toList());
 		assertEquals(List.of("luckperms"), descriptor.getPlugins());
+	}
+
+	@Test
+	void aPlatformIsANameWithAnOptionalRangeOfItsVersions() throws Exception {
+		ExtensionDescriptor descriptor = read("""
+				id: bubbles
+				version: 1
+				main: net.example.Bubbles
+				platforms:
+				  - name: Velocity
+				  - name: paper
+				    version: ">=1.16 <1.22 || ~26.1"
+				""");
+
+		assertEquals(List.of("velocity", "paper >=1.16 <1.22 || ~26.1"), descriptor.getPlatforms().stream().map(Object::toString).toList());
+		assertTrue(descriptor.getPlatforms().get(1).getVersion().accepts(Version.parse("26.1.2")));
+		assertEquals("The platforms.paper.version '^x' of x is not a version range", assertThrows(DescriptorException.class,
+				() -> read("id: x\nversion: 1\nmain: a.B\nplatforms: [{name: paper, version: ^x}]")).getMessage());
+		assertThrows(DescriptorException.class, () -> read("id: x\nversion: 1\nmain: a.B\nplatforms: [{version: ^1}]"));
 	}
 
 	@Test

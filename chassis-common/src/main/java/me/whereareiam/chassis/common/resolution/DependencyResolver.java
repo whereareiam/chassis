@@ -81,8 +81,8 @@ public final class DependencyResolver {
 	private String unfit(ExtensionDescriptor descriptor) {
 		if (!descriptor.getHost().accepts(hostVersion))
 			return "It is built for the host's API " + descriptor.getHost() + ", and the host's API is " + hostVersion;
-		if (!descriptor.getPlatforms().isEmpty() && !descriptor.getPlatforms().contains(platform.name()))
-			return "It runs on " + String.join(", ", descriptor.getPlatforms()) + ", not on " + platform.name();
+		String unfitPlatform = unfitPlatform(descriptor);
+		if (unfitPlatform != null) return unfitPlatform;
 		for (Map.Entry<String, VersionRange> required : descriptor.getRequires().entrySet()) {
 			Version version = offered.get(required.getKey());
 			if (version == null) return "It requires '" + required.getKey() + "', which the host does not offer";
@@ -91,6 +91,24 @@ public final class DependencyResolver {
 		}
 
 		return null;
+	}
+
+	private String unfitPlatform(ExtensionDescriptor descriptor) {
+		if (descriptor.getPlatforms().isEmpty()) return null;
+
+		List<ExtensionDescriptor.SupportedPlatform> named = descriptor.getPlatforms().stream()
+				.filter(supported -> supported.getName().equals(platform.name()))
+				.toList();
+		String listed = String.join(", ", descriptor.getPlatforms().stream().map(Object::toString).toList());
+		if (named.isEmpty()) return "It runs on " + listed + ", not on " + platform.name();
+
+		Version version = platform.version();
+		for (ExtensionDescriptor.SupportedPlatform supported : named) {
+			if (supported.getVersion().equals(VersionRange.ANY)) return null;
+			if (version != null && supported.getVersion().accepts(version)) return null;
+		}
+
+		return "It runs on " + listed + ", not on " + platform.name() + " " + (version == null ? "of an unknown version" : version);
 	}
 
 	private List<String> waitingFor(

@@ -301,7 +301,7 @@ class ChassisHostTest {
 				main: org.example.greeting.GreetingModule
 				requires:
 				  gateway: ^1
-				platforms: [paper]
+				platforms: [{name: paper}]
 				""").with(GreetingModule.class, Shared.class).write(folder.resolve("modules/gateway-user.jar"));
 
 		start();
@@ -309,6 +309,27 @@ class ChassisHostTest {
 		assertEquals("It is built for the host's API ^2, and the host's API is 1.2.0", host.find("future").orElseThrow().getFailure().getMessage());
 		assertEquals("It requires 'persistence', which the host does not offer", host.find("needy").orElseThrow().getFailure().getMessage());
 		assertEquals("It runs on paper, not on test", host.find("gateway-user").orElseThrow().getFailure().getMessage());
+	}
+
+	@Test
+	void anExtensionRunsOnlyOnAVersionOfThePlatformItAccepts() throws Exception {
+		ExtensionJar.of(DESCRIPTOR, """
+				id: older
+				version: 1.0.0
+				main: org.example.greeting.GreetingModule
+				platforms: [{name: test, version: ">=1.16 <1.22 || ~26.1"}]
+				""").with(GreetingModule.class, Shared.class).write(folder.resolve("modules/older.jar"));
+		ExtensionJar.of(DESCRIPTOR, """
+				id: newer
+				version: 1.0.0
+				main: org.example.greeting.GreetingModule
+				platforms: [{name: paper}, {name: test, version: "~26.1"}]
+				""").with(GreetingModule.class, Shared.class).write(folder.resolve("modules/newer.jar"));
+
+		start();
+
+		assertEquals(ExtensionState.ENABLED, state("older"));
+		assertEquals("It runs on paper, test ~26.1, not on test 1.21.4", host.find("newer").orElseThrow().getFailure().getMessage());
 	}
 
 	@Test
@@ -382,6 +403,11 @@ class ChassisHostTest {
 					@Override
 					public @NotNull String name() {
 						return "test";
+					}
+
+					@Override
+					public Version version() {
+						return Version.parse("1.21.4");
 					}
 
 					@Override
