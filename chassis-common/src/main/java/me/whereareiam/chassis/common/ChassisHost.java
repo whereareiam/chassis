@@ -12,6 +12,7 @@ import me.whereareiam.chassis.common.lifecycle.ExtensionEntries;
 import me.whereareiam.chassis.common.lifecycle.ExtensionEvents;
 import me.whereareiam.chassis.common.lifecycle.ExtensionLauncher;
 import me.whereareiam.chassis.common.lifecycle.ExtensionSettlement;
+import me.whereareiam.chassis.common.loading.JarTransformation;
 import me.whereareiam.chassis.common.resolution.DependencyResolver;
 import me.whereareiam.chassis.common.service.ServiceRegistry;
 import me.whereareiam.chassis.event.ExtensionEvent;
@@ -22,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -126,8 +128,12 @@ public final class ChassisHost<C extends ExtensionContext, F> implements Extensi
 	}
 
 	private static ExtensionLauncher.Settings settings(HostOptions options, Class<?> kind) {
+		Path transformed = options.getTransformedFolder() == null ? options.getDataFolder().resolve(".transformed")
+				: options.getTransformedFolder();
+		JarTransformation transformation = new JarTransformation(options.getTransformers(), transformed);
+
 		return new ExtensionLauncher.Settings(options.getKind(), kind, options.getDataFolder(), options.getExportLayer(),
-				options.getPreparation(), options.getPlatform(), options.getLoggers());
+				transformation, options.getPreparation(), options.getPlatform(), options.getLoggers());
 	}
 
 	/**

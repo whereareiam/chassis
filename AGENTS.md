@@ -17,9 +17,9 @@ When changing behavior:
 ### Module Map
 
 - `chassis-api`
-  The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `ExtensionPreparation`, `Extensions`, `Services` with `ServiceKey` and `ServiceRegistration`, `Platform` with `PlatformPeer`, `ExtensionDescriptor`, `InstalledExtension`, `Version`, `VersionRange`, `ExtensionState`, events and exceptions.
+  The contracts hosts and extensions compile against: `Extension`, `ExtensionContext`, `ExtensionFactory`, `ExtensionPreparation`, `ExtensionTransformer`, `Extensions`, `Services` with `ServiceKey` and `ServiceRegistration`, `Platform` with `PlatformPeer`, `ExtensionDescriptor`, `InstalledExtension`, `Version`, `VersionRange`, `ExtensionState`, events and exceptions.
 - `chassis-common`
-  The standard host. `ChassisHost` is the door: it implements `Extensions`, holds the lock and routes each operation to `lifecycle`; `HostOptions` is what a host tells it; `SelectionFile` keeps turned-off ids. Packages: `context` (`ContextFactory`, `FieldsContextFactory`: how a host makes its context of a load), `discovery` (`ExtensionDiscovery`, `DescriptorReader`), `resolution` (`DependencyResolver`), `loading` (`ExportLayer`, `ExtensionClassLoader`), `lifecycle` (`ExtensionEntries`, `ExtensionEvents`, `ExtensionSettlement`, `ExtensionControl`, `ExtensionLauncher`, `LoadCleanup`, `LoadedContext`), `service` (`ServiceRegistry`).
+  The standard host. `ChassisHost` is the door: it implements `Extensions`, holds the lock and routes each operation to `lifecycle`; `HostOptions` is what a host tells it; `SelectionFile` keeps turned-off ids. Packages: `context` (`ContextFactory`, `FieldsContextFactory`: how a host makes its context of a load), `discovery` (`ExtensionDiscovery`, `DescriptorReader`), `resolution` (`DependencyResolver`), `loading` (`ExportLayer`, `ExtensionClassLoader`, `JarTransformation`), `lifecycle` (`ExtensionEntries`, `ExtensionEvents`, `ExtensionSettlement`, `ExtensionControl`, `ExtensionLauncher`, `LoadCleanup`, `LoadedContext`), `service` (`ServiceRegistry`).
 - `chassis-adapter-guice`
   `GuiceExtensionFactory`: an injector of its own per extension, never a child injector, because Guice puts a child's just-in-time bindings into the parent and the host would keep the extension's class loader. `GuiceExtensionFactoryTest` proves it. Guice is `compileOnly`.
 - `chassis-adapter-spring`
@@ -108,7 +108,7 @@ The version comes from the `VERSION` environment variable and defaults to `dev`.
 ### Verification Guidance
 
 - Prefer targeted Gradle tasks for the module you changed before running broad root verification.
-- Add or update automated tests when behavior changes, in the closest existing test: `VersionRangeTest`, `DescriptorReaderTest`, `ChassisHostTest`, `ExtensionEntriesTest`, `ExtensionEventsTest`, `ExtensionLauncherTest`, `ServiceRegistryTest`, `GuiceExtensionFactoryTest`, `SpringExtensionFactoryTest`, `AttacheLibrariesTest`, `BukkitPlatformTest`, `VelocityPlatformTest`.
+- Add or update automated tests when behavior changes, in the closest existing test: `VersionRangeTest`, `DescriptorReaderTest`, `ChassisHostTest`, `ExtensionEntriesTest`, `ExtensionEventsTest`, `ExtensionLauncherTest`, `JarTransformationTest`, `ServiceRegistryTest`, `GuiceExtensionFactoryTest`, `SpringExtensionFactoryTest`, `AttacheLibrariesTest`, `BukkitPlatformTest`, `VelocityPlatformTest`.
 - Host tests write extension jars with `ExtensionJar`; the extensions live in `org.example.<name>` under the test sources, outside every exported package.
 - A change that could keep an extension in memory gets a `LeakCheck` assertion.
 

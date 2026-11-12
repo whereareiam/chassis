@@ -3,7 +3,9 @@ package me.whereareiam.chassis.common;
 import me.whereareiam.chassis.ExtensionContext;
 import me.whereareiam.chassis.ExtensionFactory;
 import me.whereareiam.chassis.ExtensionPreparation;
+import me.whereareiam.chassis.ExtensionTransformer;
 import me.whereareiam.chassis.common.loading.ExportLayer;
+import me.whereareiam.chassis.common.loading.Marking;
 import me.whereareiam.chassis.model.InstalledExtension;
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.platform.Platform;
@@ -518,6 +520,23 @@ class ChassisHostTest {
 		}
 	}
 
+	@Test
+	void anExtensionRunsFromItsTransformedJarKeptInTheDataFolderByDefault() throws Exception {
+		greeting();
+		Marking marking = new Marking("marking");
+		host = new ChassisHost<>(options(ExtensionPreparation.NONE, List.of(marking)), TestModule.class, base -> base,
+				ExtensionFactory.CONSTRUCTOR);
+
+		host.start();
+		host.reload("greeting");
+
+		assertEquals(ExtensionState.ENABLED, state("greeting"));
+		assertEquals(List.of("greeting.jar"), marking.transformed);
+		assertNotNull(host.classLoader("greeting").getResource("transformed.txt"));
+		assertTrue(Files.isRegularFile(folder.resolve("data/.transformed/greeting-marking-1.jar")));
+		assertEquals(folder.resolve("modules/greeting.jar"), host.find("greeting").orElseThrow().getJar());
+	}
+
 	record ModuleFields(Updater updater) {
 	}
 
@@ -534,6 +553,10 @@ class ChassisHostTest {
 	}
 
 	private HostOptions options(ExtensionPreparation preparation) {
+		return options(preparation, List.of());
+	}
+
+	private HostOptions options(ExtensionPreparation preparation, List<ExtensionTransformer> transformers) {
 		return HostOptions.builder()
 				.kind("module")
 				.folder(folder.resolve("modules"))
@@ -560,6 +583,7 @@ class ChassisHostTest {
 				})
 				.exportLayer(new ExportLayer(getClass().getClassLoader(), List.of("me.whereareiam.chassis")))
 				.preparation(preparation)
+				.transformers(transformers)
 				.build();
 	}
 
