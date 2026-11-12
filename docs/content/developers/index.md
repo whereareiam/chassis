@@ -122,6 +122,8 @@ public final class ExampleHost {
 | `platform` | The platform the host runs on. See [Platforms](./platforms/index.md). |
 | `exportLayer` | The packages extensions see of the host. See [What extensions see](./class-loading/index.md). |
 | `preparation` | Prepares each extension's class loader before its main class is loaded, such as adding the libraries it declares. Defaults to `ExtensionPreparation.NONE`. See [What extensions see](./class-loading/index.md#preparing-a-loader). |
+| `transformer` | Changes each extension's jar before its class loader is made; call it once per transformer, in the order they run. See [What extensions see](./class-loading/index.md#transforming-a-jar). |
+| `transformedFolder` | Where the transformers' results are kept. Defaults to `<dataFolder>/.transformed`. |
 | `loggers` | Gives the `System.Logger` of a name: the host's kind word or an extension's id. Defaults to `System::getLogger`. |
 
 The last two constructor arguments make each load: `base -> base` hands every extension the context Chassis keeps, and `ExtensionFactory.CONSTRUCTOR` makes the main class through its public constructor without parameters. [Guice](./guice/index.md) and [Spring](./spring/index.md) replace the factory.

@@ -8,6 +8,7 @@ import me.whereareiam.chassis.ExtensionPreparation;
 import me.whereareiam.chassis.common.context.FieldsContextFactory;
 import me.whereareiam.chassis.common.loading.ExportLayer;
 import me.whereareiam.chassis.common.loading.ExtensionClassLoader;
+import me.whereareiam.chassis.common.loading.JarTransformation;
 import me.whereareiam.chassis.common.service.ServiceRegistry;
 import me.whereareiam.chassis.exception.ExtensionException;
 import me.whereareiam.chassis.model.ExtensionDescriptor;
@@ -23,7 +24,7 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Starts and stops one extension: its class loader, the host's preparation of it, its main class, its context and
+ * Starts and stops one extension: the host's transformation of its jar, its class loader, the host's preparation of it, its main class, its context and
  * instance. What a start made is undone when the start fails, and when the extension stops. It keeps no state of its
  * own: {@link ExtensionSettlement} decides what starts, {@link ExtensionControl} what stops, and
  * {@link ExtensionEntries} keeps what runs.
@@ -61,9 +62,10 @@ public final class ExtensionLauncher<C extends ExtensionContext, F> {
 		AutoCloseable prepared = null;
 		LoadedContext base = null;
 		try {
-			loader = new ExtensionClassLoader(id, jar.toUri().toURL(), settings.exportLayer(), descriptor.getExports(), dependencies,
+			Path loaded = settings.transformation().transform(descriptor, jar);
+			loader = new ExtensionClassLoader(id, loaded.toUri().toURL(), settings.exportLayer(), descriptor.getExports(), dependencies,
 					peers(descriptor));
-			prepared = settings.preparation().prepare(new PreparedLoader(descriptor, jar, loader));
+			prepared = settings.preparation().prepare(new PreparedLoader(descriptor, loaded, loader));
 			Class<?> main = mainClass(descriptor, loader);
 
 			Path dataFolder = Files.createDirectories(settings.dataFolder().resolve(id));
@@ -148,7 +150,8 @@ public final class ExtensionLauncher<C extends ExtensionContext, F> {
 	 * @param kind        the host's word for its extensions, for log lines
 	 * @param contract    the host's extension contract; a main class must implement it
 	 * @param dataFolder  the folder that holds each extension's own folder
-	 * @param exportLayer the packages extensions see of the host
+	 * @param exportLayer    the packages extensions see of the host
+	 * @param transformation changes each extension's jar before its class loader is made
 	 * @param preparation prepares each extension's class loader before its main class loads
 	 * @param platform    the platform, for the class loaders of the peers an extension names packages of
 	 * @param loggers     gives the logger of an extension's id
@@ -158,6 +161,7 @@ public final class ExtensionLauncher<C extends ExtensionContext, F> {
 			@NotNull Class<?> contract,
 			@NotNull Path dataFolder,
 			@NotNull ExportLayer exportLayer,
+			@NotNull JarTransformation transformation,
 			@NotNull ExtensionPreparation preparation,
 			@NotNull Platform platform,
 			@NotNull Function<String, System.Logger> loggers

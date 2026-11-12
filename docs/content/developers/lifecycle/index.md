@@ -28,13 +28,14 @@ If an extension fails to start, the extensions that need it wait, and Chassis de
 
 For each extension it starts, Chassis:
 
-1. makes its class loader over the export layer and the loaders of its enabled dependencies;
-2. runs the host's [preparation](../class-loading/index.md#preparing-a-loader) on that loader;
-3. loads the main class and checks that it implements the host's kind;
-4. creates the data folder `<dataFolder>/<id>`, which is kept across loads;
-5. makes the context of this load: the base context, through the host's `ContextFactory`;
-6. makes the instance through the host's `ExtensionFactory`;
-7. calls `enable(context)`.
+1. runs the host's [transformers](../class-loading/index.md#transforming-a-jar) on its jar, or takes their kept result;
+2. makes its class loader over the export layer and the loaders of its enabled dependencies;
+3. runs the host's [preparation](../class-loading/index.md#preparing-a-loader) on that loader;
+4. loads the main class and checks that it implements the host's kind;
+5. creates the data folder `<dataFolder>/<id>`, which is kept across loads;
+6. makes the context of this load: the base context, through the host's `ContextFactory`;
+7. makes the instance through the host's `ExtensionFactory`;
+8. calls `enable(context)`.
 
 The extension is then `ENABLED`, and the host's log shows `Enabled the module <id> <version>`.
 

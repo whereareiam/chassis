@@ -4,12 +4,15 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
 import me.whereareiam.chassis.ExtensionPreparation;
+import me.whereareiam.chassis.ExtensionTransformer;
 import me.whereareiam.chassis.common.loading.ExportLayer;
 import me.whereareiam.chassis.model.Version;
 import me.whereareiam.chassis.platform.Platform;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -65,6 +68,17 @@ public final class HostOptions {
 	private final @NotNull Map<String, Version> offered;
 	private final @NotNull Platform platform;
 	private final @NotNull ExportLayer exportLayer;
+	/**
+	 * Change each extension's jar before its class loader is made, in this order, each on the result of the previous
+	 * one, such as to relocate a package the host ships under another name. None by default.
+	 */
+	@Singular
+	private final @NotNull List<ExtensionTransformer> transformers;
+	/**
+	 * The folder the transformers' results are kept in, so a jar is transformed again only when it or a transformer's
+	 * version changes. Defaults to {@code <dataFolder>/.transformed}, which no extension's id can name.
+	 */
+	private final @Nullable Path transformedFolder;
 	/**
 	 * Prepares each extension's class loader before its main class is loaded, such as
 	 * {@code chassis-adapter-attache}'s libraries. Defaults to {@link ExtensionPreparation#NONE}.
