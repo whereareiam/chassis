@@ -12,6 +12,8 @@ import me.whereareiam.chassis.platform.PlatformPeer;
 import me.whereareiam.chassis.testing.ExtensionJar;
 import me.whereareiam.chassis.testing.LeakCheck;
 import me.whereareiam.chassis.type.ExtensionState;
+import me.whereareiam.attache.LibraryTransformer;
+import me.whereareiam.attache.model.LibraryRequest;
 import me.whereareiam.attache.type.VerbosityMode;
 import org.example.attache.GroupedModule;
 import org.example.attache.LetteredModule;
@@ -23,10 +25,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -70,6 +75,39 @@ class AttacheLibrariesTest {
 		host.disable("lettered");
 
 		assertTrue(LeakCheck.collected(loader, Duration.ofSeconds(10)), "the library manager kept the extension's loader");
+	}
+
+	@Test
+	void theTransformersTheHostNamesRunOnEveryExtensionsLibrariesBeforeTheyLoad() throws Exception {
+		Path library = ExtensionJar.of("letters.txt", "").with(Letters.class).write(folder.resolve("source/letters-1.0.0.jar"));
+		lettered(library.toUri().toString());
+		List<String> seen = new ArrayList<>();
+		LibraryTransformer copying = new LibraryTransformer() {
+			@Override
+			public @NotNull String getId() {
+				return "copying";
+			}
+
+			@Override
+			public @NotNull String getVersion() {
+				return "1";
+			}
+
+			@Override
+			public @NotNull Path transform(@NotNull LibraryRequest request, @NotNull Path input, @NotNull Path output) throws IOException {
+				seen.add(request.getArtifactId());
+				Files.copy(input, output, StandardCopyOption.REPLACE_EXISTING);
+
+				return output;
+			}
+		};
+
+		start(copying);
+
+		assertEquals(ExtensionState.ENABLED, state());
+		assertEquals("HELLO", System.getProperty("chassis.test.attache"));
+		assertEquals(List.of("letters"), seen);
+		assertTrue(Files.exists(folder.resolve("libraries/org/example/letters/1.0.0/letters-1.0.0-copying-1.jar")));
 	}
 
 	@Test
@@ -143,10 +181,11 @@ class AttacheLibrariesTest {
 				.write(folder.resolve("modules/lettered.jar"));
 	}
 
-	private void start() throws Exception {
+	private void start(LibraryTransformer... transformers) throws Exception {
 		libraries = AttacheLibraries.builder()
 				.folder(folder.resolve("libraries"))
 				.verbosity(VerbosityMode.QUIET)
+				.transformers(List.of(transformers))
 				.build();
 		HostOptions options = HostOptions.builder()
 				.kind("module")
