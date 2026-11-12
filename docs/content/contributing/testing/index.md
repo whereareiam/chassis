@@ -12,6 +12,9 @@ Every module tests itself with JUnit under `src/test/java`, and `./gradlew test`
 | versions and ranges | `chassis-api`: `VersionRangeTest` |
 | reading and checking descriptors | `chassis-common`: `DescriptorReaderTest` |
 | discovery, resolution, loading, lifecycle, selection, the control API | `chassis-common`: `ChassisHostTest` |
+| starting and stopping one extension, undoing a failed start | `chassis-common`: `ExtensionLauncherTest` |
+| entries and their states | `chassis-common`: `ExtensionEntriesTest` |
+| log lines and events | `chassis-common`: `ExtensionEventsTest` |
 | services, priorities and watches | `chassis-common`: `ServiceRegistryTest` |
 | the Guice adapter | `chassis-adapter-guice`: `GuiceExtensionFactoryTest` |
 

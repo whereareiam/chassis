@@ -27,24 +27,30 @@ Not in the repository yet: platforms for Bukkit, Velocity and BungeeCord.
 
 | Package | Class | Role |
 | --- | --- | --- |
-| `common` | `ChassisHost` | Owns every installed extension and its state, makes every change under one lock, and implements `Extensions`. |
+| `common` | `ChassisHost` | The door: implements `Extensions`, makes every change under one lock, keeps the selection file, and routes each operation to `lifecycle`. |
 | `common` | `HostOptions` | What the host tells Chassis. |
 | `common` | `SelectionFile` | Reads and writes the list of turned-off ids. |
+| `common.context` | `ContextFactory`, `FieldsContextFactory` | Make a host's context of one load, the second with the host's fields of the descriptor. The launcher takes the second; a host's plain factory is turned into it. |
 | `common.discovery` | `ExtensionDiscovery`, `DescriptorReader` | List the jars of the folder and read and check each descriptor. A jar that cannot be read becomes a `Found` with a failure, never an exception. |
 | `common.resolution` | `DependencyResolver` | Decides, without side effects, which candidates fail, which wait and in which order the rest start. |
 | `common.loading` | `ExportLayer`, `ExtensionClassLoader` | The parent loader with the host's exports, and one loader per extension: export layer, own jar and the jars a preparation added, the packages its dependencies export. |
+| `common.lifecycle` | `ExtensionEntries` | Every installed extension: jar, descriptor, state, what runs in start order. Decides nothing. |
+| `common.lifecycle` | `ExtensionEvents` | Tells each change to the listeners, and logs what an administrator acts on. |
+| `common.lifecycle` | `ExtensionSettlement` | Starts what can start: asks the resolver, fails or waits what it says, starts the rest in order. |
+| `common.lifecycle` | `ExtensionControl` | What an administrator does: installs new jars, enables, disables, reloads, looks at extensions again, stops them dependents first. |
+| `common.lifecycle` | `ExtensionLauncher`, `LoadCleanup` | Starts and stops one extension, and closes what a load made, also when a start fails. Keeps no state. |
 | `common.lifecycle` | `LoadedContext` | The base context of one load. It keeps what the extension hands to `onClose` and removes the extension's services when closed. |
 | `common.service` | `ServiceRegistry` | The services of every owner, with `as(owner)` for an owner's view and `removeOwner(owner)` for its removal. |
 
 ## How an extension moves through Chassis
 
-1. `ChassisHost.start()` reads the selection file and asks `ExtensionDiscovery` for every jar. Each becomes an entry: `DISABLED` when listed, `FAILED` when unreadable, undecided otherwise.
-2. `settle()` gives the undecided and waiting entries to `DependencyResolver` together with the running ones. The resolver fails what does not fit the host, the platform or the offers, or forms a cycle; it moves to waiting what lacks a peer or a dependency, until nothing changes; it orders the rest depth first.
-3. `settle()` starts the ordered entries one by one. Before each it checks again that every required dependency is enabled, because an earlier start in the same pass may have failed. It repeats until a pass starts nothing.
-4. Starting builds the `ExtensionClassLoader`, the `LoadedContext`, the host's context and the instance, then calls `enable`. Any failure closes the context and the loader before the entry becomes `FAILED`.
-5. Stopping calls `disable`, closes the `LoadedContext` (resources in reverse order, then `removeOwner`), and closes the loader, whatever `disable` threw. `stopDependents` stops the enabled extensions that depend on one, directly or not, the last started first.
+1. `ChassisHost.start()` reads the selection file, and `ExtensionControl` asks `ExtensionDiscovery` for every jar. Each becomes an entry: `DISABLED` when listed, `FAILED` when unreadable, undecided otherwise.
+2. `ExtensionSettlement` gives the undecided and waiting entries to `DependencyResolver` together with the running ones. The resolver fails what does not fit the host, the platform or the offers, or forms a cycle; it moves to waiting what lacks a peer or a dependency, until nothing changes; it orders the rest depth first.
+3. `ExtensionSettlement` starts the ordered entries one by one. Before each it checks again that every required dependency is enabled, because an earlier start in the same pass may have failed. It repeats until a pass starts nothing.
+4. `ExtensionLauncher` starts it: it builds the `ExtensionClassLoader`, runs the preparation, the `LoadedContext`, the host's context and the instance, then calls `enable`. Any failure closes the context, what the preparation returned and the loader before the entry becomes `FAILED`.
+5. `ExtensionLauncher` stops it: it calls `disable`, closes the `LoadedContext` (resources in reverse order, then `removeOwner`), and closes the loader, whatever `disable` threw. `ExtensionControl` stops the enabled extensions that depend on one, directly or not, the last started first.
 
-After an extension stops, `ChassisHost` keeps only its descriptor, jar path and state. That, and the registry dropping everything of the owner, is what lets a stopped extension's loader be collected; the tests check it with `LeakCheck`. The one exception is the failure of an extension that failed to start: it may be an exception of the extension's own classes, and it is kept until the extension is enabled or reloaded again.
+After an extension stops, `ExtensionEntries` keeps only its descriptor, jar path and state. That, and the registry dropping everything of the owner, is what lets a stopped extension's loader be collected; the tests check it with `LeakCheck`. The failure kept of an extension that failed to start is a copy that names the original's type and keeps its message and stack as text, because the original may be of the extension's own classes.
 
 ## Rules that keep it that way
 
