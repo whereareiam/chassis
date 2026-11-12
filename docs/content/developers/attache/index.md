@@ -38,6 +38,18 @@ HostOptions options = HostOptions.builder()
 | `logging` | Attache's `LoggingHelper`. Defaults to the `System.Logger` named `attache`. |
 | `verbosity` | How much Attache logs for each extension, an Attache `VerbosityMode`. Defaults to `SUMMARY`. |
 | `repository` | A repository every extension's libraries may come from, besides those its descriptor names, such as the host's own. Call it once per repository. |
+| `transformer` | An Attache `LibraryTransformer` registered on the manager of every extension, which runs on each library it downloads before the library loads. Call it once per transformer, or pass a list to `transformers`. |
+
+A host whose own libraries pass Attache transformers, such as one that downgrades their bytecode for an older Java, hands the same transformers on, so every extension's libraries pass them too:
+
+```java
+.preparation(AttacheLibraries.builder()
+        .folder(dataFolder.resolve("libraries"))
+        .transformers(hostLibraries.getLibraryTransformers())
+        .build())
+```
+
+Attache keeps their results in `folder`, beside the libraries, and transforms a library again only when it or a transformer's version changes.
 
 ## Declaring libraries in an extension
 

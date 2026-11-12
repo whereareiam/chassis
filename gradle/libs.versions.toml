@@ -10,7 +10,7 @@ moddev = "2.0.148"
 lombok = "1.18.42"
 
 # general
-attache = "1.3.0"
+attache = "dev-940ee5b"
 configura = "2.1.0"
 guice = "7.0.0"
 spring = "7.0.10"
