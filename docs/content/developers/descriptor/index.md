@@ -124,7 +124,7 @@ Ranges are written as npm and Cargo write them:
 | `>=1.4 <3` | several bounds separated by spaces, all of which must hold |
 | `>=1.16 <1.22 \|\| ~26.1` | alternatives separated by `\|\|`, one of which must hold |
 
-A range accepts a pre-release only when a bound of the alternative that accepts it names a pre-release of the same version: `^1` does not accept `1.5.0-beta.1`, `>=2.0.0-beta.1` accepts `2.0.0-beta.2`.
+A range accepts a pre-release only when a bound of the alternative that accepts it names a pre-release of the same version: `^1` does not accept `1.5.0-beta.1`, `>=2.0.0-beta.1` accepts `2.0.0-beta.2`. An entry without a range, or with `*`, accepts every version, pre-releases included.
 
 YAML reads a value that starts with `*` as an alias and one that starts with `>` as folded text, so quote such ranges:
 

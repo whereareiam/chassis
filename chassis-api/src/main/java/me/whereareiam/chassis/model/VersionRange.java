@@ -99,7 +99,10 @@ public final class VersionRange {
 		return false;
 	}
 
+	// An alternative without bounds, such as *, accepts every version. One with bounds accepts a pre-release only when
+	// a bound names a pre-release of the same version.
 	private static boolean accepts(List<Bound> bounds, Version version) {
+		if (bounds.isEmpty()) return true;
 		if (version.isPreRelease() && bounds.stream().noneMatch(bound -> bound.version.isPreRelease()
 				&& bound.version.getMajor() == version.getMajor()
 				&& bound.version.getMinor() == version.getMinor()

@@ -62,6 +62,14 @@ class VersionRangeTest {
 	}
 
 	@Test
+	void aRangeWithoutBoundsAcceptsEveryVersionPreReleasesIncluded() {
+		assertTrue(VersionRange.ANY.accepts(Version.parse("2.0.0-rc.7")));
+		assertTrue(VersionRange.parse("*").accepts(Version.parse("2.0.0-rc.7")));
+		assertTrue(VersionRange.parse("^3 || *").accepts(Version.parse("2.0.0-rc.7")));
+		assertFalse(VersionRange.parse("^2").accepts(Version.parse("2.0.0-rc.7")));
+	}
+
+	@Test
 	void whatIsNoRangeIsRefused() {
 		assertThrows(IllegalArgumentException.class, () -> VersionRange.parse("^banana"));
 		assertThrows(IllegalArgumentException.class, () -> Version.parse("1.x"));
